@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="API">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/Desktop/API.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="https://osmb-doc.netlify.app/" />
+    </JAVADOC>
+    <SOURCES />
+  </library>
+</component>
