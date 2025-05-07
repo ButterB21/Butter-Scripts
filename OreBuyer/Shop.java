@@ -7,7 +7,6 @@ public enum Shop {
 
     BLAST_FURNACE("Blast Furnace", 7757, new WorldPosition(1936, 4966, 0), new RectangleArea(1946, 4958, 1949, 4956, 0), true);
 
-    //public static final WorldPosition ORDAN_POSITION = new WorldPosition(1936, 4966, 0);
     private final String name;
     private final int regionID;
     private final WorldPosition idleLocation;

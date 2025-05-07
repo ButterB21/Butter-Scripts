@@ -76,9 +76,11 @@ public class OreBuyer extends Script {
         selectedItemID = ui.getSelectedOre();
         itemName = getItemManager().getItemName(selectedItemID);
         log(OreBuyer.class, "selectedItemID: " + selectedItemID);
-        if (selectedItemID == 453) {
-            useCoalBag = true;
-        }
+//        if (selectedItemID == 453) {
+//            useCoalBag = true;
+//        }
+        useCoalBag = ui.useCoalBag;
+        log(OreBuyer.class, "useCoalBag value: " + useCoalBag + " From ScriptOptins: " + ui.useCoalBag);
 
         selectedShop = ui.getSelectedShop();
         log("Selected shop value: " + selectedShop);
@@ -293,7 +295,7 @@ public class OreBuyer extends Script {
                 }
                 log(OreBuyer.class, "fillCoalBag func: freeSlots_ value: " + freeSlots_.get() + " vs freeSlots value: " + freeSlots);
                 return freeSlots_.get() < freeSlots;
-            }, 5000);
+            }, this.random(1600,5000));
         }
         return false;
     }
@@ -314,7 +316,7 @@ public class OreBuyer extends Script {
                 Optional<Integer> freeSlots_ = getItemManager().getFreeSlotsInteger(getWidgetManager().getInventory());
                 log(OreBuyer.class, "emptyCoalBag func: freeSlots_ value: " + freeSlots_.get());
                 return true;
-            }, 5000);
+            }, this.random(1600, 5000));
         }
         return false;
     }
