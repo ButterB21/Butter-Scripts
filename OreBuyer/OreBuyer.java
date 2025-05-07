@@ -1,3 +1,4 @@
+import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemSearchResult;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.scene.RSObject;
@@ -95,8 +96,10 @@ public class OreBuyer extends Script {
     @Override
     public int poll() {
         if (getWidgetManager().getInventory().isVisible()) {
-            UIResult<ItemSearchResult> coins = getItemManager().findItem(getWidgetManager().getInventory(), ItemID.COINS_995);
-            int amountOfCoins = coins.get().getStackAmount();
+//            UIResult<ItemSearchResult> coins = getItemManager().findItem(getWidgetManager().getInventory(), ItemID.COINS_995);
+            ItemGroupResult coins = getWidgetManager().getInventory().search(Set.of(ItemID.COINS_995));
+            int amountOfCoins = coins.getAmount();
+            log(OreBuyer.class, "Coins: " + amountOfCoins);
             if (coins == null) {
                 return 0;
             }
@@ -137,7 +140,7 @@ public class OreBuyer extends Script {
     }
 
     private void handleBank() {
-        if (!getWidgetManager().getBank().depositAll(new int[]{ItemID.COINS_995, ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG})) {
+        if (!getWidgetManager().getBank().depositAll(Set.of(ItemID.COINS_995, ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG))) {
             return;
         }
 
