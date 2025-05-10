@@ -27,13 +27,14 @@ public class OreBuyer extends Script {
     public static final String[] BANK_NAMES = {"Bank", "Chest", "Bank booth", "Bank chest", "Grand Exchange booth"};
     public static final String[] BANK_ACTIONS = {"bank", "open", "use"};
 
-    private final int[] oreIDs = new int[] {ItemID.COPPER_ORE, ItemID.TIN_ORE, ItemID.IRON_ORE, ItemID.MITHRIL_ORE, ItemID.SILVER_ORE, ItemID.COAL, ItemID.GOLD_ORE};
+    private final Set<Integer> oreIDs = new HashSet<>(Set.of(ItemID.COPPER_ORE, ItemID.TIN_ORE, ItemID.IRON_ORE, ItemID.MITHRIL_ORE, ItemID.SILVER_ORE, ItemID.COAL, ItemID.GOLD_ORE));
     private Shop selectedShop;
     private ShopInterface shopInterface;
     private int selectedItemID;
     private String itemName = null;
     private boolean hopFlag = false;
     private boolean useCoalBag = false;
+    private ItemGroupResult inventorySnapshot;
     private final Predicate<RSObject> bankQuery = gameObject -> {
         // if object has no name
         if (gameObject.getName() == null) {
@@ -77,11 +78,9 @@ public class OreBuyer extends Script {
         selectedItemID = ui.getSelectedOre();
         itemName = getItemManager().getItemName(selectedItemID);
         log(OreBuyer.class, "selectedItemID: " + selectedItemID);
-//        if (selectedItemID == 453) {
-//            useCoalBag = true;
-//        }
+
         useCoalBag = ui.useCoalBag;
-        log(OreBuyer.class, "useCoalBag value: " + useCoalBag + " From ScriptOptins: " + ui.useCoalBag);
+        log(OreBuyer.class, "useCoalBag value: " + useCoalBag + " From ScriptOptions: " + ui.useCoalBag);
 
         selectedShop = ui.getSelectedShop();
         log("Selected shop value: " + selectedShop);
@@ -95,10 +94,25 @@ public class OreBuyer extends Script {
 
     @Override
     public int poll() {
+        if (getWidgetManager().getBank().isVisible()) {
+            log(getClass().getSimpleName(), "Handling bank interface...");
+            handleBank();
+            return 0;
+        }
+
+        if (shopInterface.isVisible()) {
+            handleShopInterface();
+            return 0;
+        }
+
+        if (hopFlag) {
+            hopWorlds();
+            return 0;
+        }
+
         if (getWidgetManager().getInventory().isVisible()) {
-//            UIResult<ItemSearchResult> coins = getItemManager().findItem(getWidgetManager().getInventory(), ItemID.COINS_995);
             ItemGroupResult coins = getWidgetManager().getInventory().search(Set.of(ItemID.COINS_995));
-            int amountOfCoins = coins.getAmount();
+            int amountOfCoins = coins.getAmount(ItemID.COINS_995);
             log(OreBuyer.class, "Coins: " + amountOfCoins);
             if (coins == null) {
                 return 0;
@@ -110,25 +124,12 @@ public class OreBuyer extends Script {
             }
         }
 
-        if (getWidgetManager().getBank().isVisible()) {
-            log(getClass().getSimpleName(), "Handling bank interface...");
-            handleBank();
-            return 0;
-        }
-
-        if (shopInterface.isVisible()) {
-            log(OreBuyer.class, "Ore shop is visible");
-            handleShopInterface();
-            return 0;
-        }
-
-        Optional<Integer> freeSlots = getItemManager().getFreeSlotsInteger(getWidgetManager().getInventory());
-
-        log("freeSlots value isEmpty: " + freeSlots.isEmpty());
-        log("freeSlots value get: " + freeSlots.get());
+        int freeSlots = getWidgetManager().getInventory().search(Set.of()).getFreeSlots();
+        log(OreBuyer.class, "free slots search value in poll: " + getWidgetManager().getInventory().search(Set.of()));
+        log("freeSlots value: " + freeSlots);
 
         //check for coal bag first to fill?
-        if (freeSlots.get() == 0) {
+        if (freeSlots == 0) {
             log(getClass().getSimpleName(), "Inventory full. Open bank...");
             openBank();
             return 0;
@@ -140,7 +141,8 @@ public class OreBuyer extends Script {
     }
 
     private void handleBank() {
-        if (!getWidgetManager().getBank().depositAll(Set.of(ItemID.COINS_995, ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG))) {
+        Set<Integer> itemsToIgnore = Set.of(ItemID.COINS_995, ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG);
+        if (!getWidgetManager().getBank().depositAll(itemsToIgnore)) {
             return;
         }
 
@@ -194,7 +196,6 @@ public class OreBuyer extends Script {
                 return;
             }
 
-            log("Poly value: " + polygon);
             Polygon npcLocation = polygon.getResized(0.5);
             getFinger().tap(npcLocation, "Trade Ordan");
             submitHumanTask(() -> shopInterface.isVisible(), random(6000, 9000));
@@ -202,25 +203,34 @@ public class OreBuyer extends Script {
     }
     private void handleShopInterface () {
         log("HandleShopInterface selectedOreID: " + selectedItemID);
-        Optional<Integer> freeSlots = getItemManager().getFreeSlotsInteger(getWidgetManager().getInventory());
-        if (freeSlots.get() == 0) {
+        inventorySnapshot = getWidgetManager().getInventory().search(Set.of());
+        ItemGroupResult shopSnapShot = shopInterface.search(oreIDs);
+
+        if (inventorySnapshot == null || shopSnapShot == null) {
+            return;
+        }
+
+        int freeSlots = inventorySnapshot.getFreeSlots();
+        log(OreBuyer.class, "handleShopInterface freeSlots value: " + freeSlots);
+
+        if (inventorySnapshot.isFull()) {
             log(OreBuyer.class, "Inventory Full. Closing shop interface.");
             shopInterface.close();
 
             if (useCoalBag) {
-                fillCoalBag(freeSlots.get());
+                fillCoalBag(freeSlots);
             }
             return;
         }
-        //find ore in shop
-        //UIResult<ItemSearchResult> oreInShop = getItemManager().findItem(shopInterface, selectedOreID);
+        log(OreBuyer.class, "oreIDs: " + oreIDs);
 
-        //Workaround for finding the coal in the shop
-        UIResultList<ItemSearchResult> oreInShop = getItemManager().findAllOfItem(shopInterface, oreIDs);
-        ItemSearchResult itemInShop = getItemByID(oreInShop);
+//        ItemSearchResult itemInShop = getItemManager().scanItemGroup(shopInterface, oreIDs).getItem(selectedItemID);
+        //Workaround until recognition for coal is fixed.
+        Set<ItemSearchResult> recognisedItems = shopSnapShot.getRecognisedItems();
 
+        ItemSearchResult itemInShop = getResultFor(selectedItemID, recognisedItems);
         if (itemInShop == null) {
-            log(OreBuyer.class, "Could not find any items in the shop. Logging out...");
+            log(OreBuyer.class, "Could not find selected item in the shop. Logging out...");
             getWidgetManager().getLogoutTab().logout();
             stop();
         }
@@ -234,26 +244,38 @@ public class OreBuyer extends Script {
             log(OreBuyer.class, "Shop is out of stock. Hopping worlds...");
             shopInterface.close();
             hopFlag = true;
-            hopWorlds();
         }
-    }
-
-    private ItemSearchResult getItemByID (UIResultList<ItemSearchResult> itemsInShop) {
-        for (int i = 0; i < itemsInShop.size(); i++) {
-            if (itemsInShop.get(i).getId() == selectedItemID) {
-                return itemsInShop.get(i);
-            }
-        }
-        return null;
     }
 
     private void handleShopBuying(ItemSearchResult itemToBuy) {
         int amountToBuy = 50;
-        Optional<Integer> freeSlots = getItemManager().getFreeSlotsInteger(getWidgetManager().getInventory());
-        log(OreBuyer.class, "Initial freeSlots value: " + freeSlots.get());
-        //UIResult<ItemSearchResult> itemToBuy = getItemManager().findItem(shopInterface, selectedOreID); //check selectedOreID
+        int freeSlots = getWidgetManager().getInventory().search(Set.of()).getFreeSlots();
+        log(OreBuyer.class, "Initial freeSlots value: " + freeSlots);
 
-        buyItem(amountToBuy, itemToBuy, freeSlots.get());
+        buyItem(amountToBuy, itemToBuy, freeSlots);
+    }
+
+    private int getTypeForSlot(int slot) {
+        return switch (slot) {
+            case 0 -> ItemID.COPPER_ORE;
+            case 1 -> ItemID.TIN_ORE;
+            case 2 -> ItemID.IRON_ORE;
+            case 3 -> ItemID.MITHRIL_ORE;
+            case 4 -> ItemID.SILVER_ORE;
+            case 5 -> ItemID.GOLD_ORE;
+            case 6 -> ItemID.COAL;
+            default -> throw new IllegalStateException("Unexpected value: " + slot);
+        };
+    }
+
+    private ItemSearchResult getResultFor(int itemID, Set<ItemSearchResult> recognisedItems) {
+        for(ItemSearchResult itemSearchResult : recognisedItems) {
+            int realType = getTypeForSlot(itemSearchResult.getSlot());
+            if(realType == itemID) {
+                return itemSearchResult;
+            }
+        }
+        return null;
     }
 
     private boolean buyItem (int amount, ItemSearchResult item, int freeSlots) {
@@ -263,14 +285,15 @@ public class OreBuyer extends Script {
 
         //Click on the selected item to buy
         if (item.interact()) {
-            log(OreBuyer.class, "Buying " + item.getId());
+            log(OreBuyer.class, "Buying " + item);
             return submitTask(() -> {
-                Optional<Integer> freeSlots_ = getItemManager().getFreeSlotsInteger(getWidgetManager().getInventory());
-                if (!freeSlots_.isPresent()) {
+                inventorySnapshot = getWidgetManager().getInventory().search(Set.of());
+                log(OreBuyer.class, "buyItem free slots: " + inventorySnapshot);
+                if (inventorySnapshot.isEmpty()) {
                     return false;
                 }
-                log(OreBuyer.class, "buyItem func: freeSlots_ value: " + freeSlots_.get() + " vs freeSlots value: " + freeSlots);
-                return freeSlots_.get() < freeSlots;
+                log(OreBuyer.class, "buyItem func: freeSlots_ value: " + inventorySnapshot.getFreeSlots() + " vs freeSlots value: " + freeSlots);
+                return inventorySnapshot.getFreeSlots() < freeSlots;
             }, 5000);
         }
         return false;
@@ -282,42 +305,45 @@ public class OreBuyer extends Script {
             log(OreBuyer.class, "Inventory not visible.");
             return false;
         }
-
-        UIResultList<ItemSearchResult> coalBag = getItemManager().findAllOfItem(getWidgetManager().getInventory(), ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG);
-        if (coalBag.isNotFound()) {
+        Set<Integer> coalBagIDs = Set.of(ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG);
+        ItemGroupResult coalBag = getWidgetManager().getInventory().search(coalBagIDs);
+        //Come back to this later and try isEmpty()
+        if (!coalBag.containsAny(coalBagIDs)) {
             log(OreBuyer.class, "Coal Bag not found in the inventory");
             return false;
         }
         log(OreBuyer.class, "coalBag result: " + coalBag);
-        //Add check for if bank is visible
-        if (coalBag.get(0).interact("Fill")) {
+        //Add check for if bank is visible?
+        if (coalBag.getRandomItem().interact("Fill")) {
             return submitTask(() -> {
-                Optional<Integer> freeSlots_ = getItemManager().getFreeSlotsInteger(getWidgetManager().getInventory());
-                if (!freeSlots_.isPresent()) {
+                int freeSlots_ = getWidgetManager().getInventory().search(Set.of()).getFreeSlots();
+                if (freeSlots_ == 0) {
                     return false;
                 }
-                log(OreBuyer.class, "fillCoalBag func: freeSlots_ value: " + freeSlots_.get() + " vs freeSlots value: " + freeSlots);
-                return freeSlots_.get() < freeSlots;
+                log(OreBuyer.class, "fillCoalBag func: freeSlots_ value: " + freeSlots_ + " vs freeSlots value: " + freeSlots);
+                return freeSlots_ < freeSlots;
             }, this.random(1600,5000));
         }
         return false;
     }
 
     private boolean emptyCoalBag() {
+        Set<Integer> coalBagIDs = Set.of(ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG);
         if (!getWidgetManager().getInventory().isVisible()) {
             log(OreBuyer.class, "Inventory not visible.");
             return false;
         }
-        UIResultList<ItemSearchResult> coalBag = getItemManager().findAllOfItem(getWidgetManager().getInventory(), ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG);
-        if (coalBag.isNotFound()) {
+
+        ItemGroupResult coalBag = getWidgetManager().getInventory().search(coalBagIDs);
+        if (!coalBag.containsAny(coalBagIDs)) {
             log(OreBuyer.class, "Coal Bag not found in the inventory");
             return false;
         }
         log(OreBuyer.class, "coalBag value at bank: " + coalBag);
-        if (coalBag.get(0).interact("Empty")) {
+        if (coalBag.getRandomItem().interact("Empty")) {
             return submitTask(() -> {
-                Optional<Integer> freeSlots_ = getItemManager().getFreeSlotsInteger(getWidgetManager().getInventory());
-                log(OreBuyer.class, "emptyCoalBag func: freeSlots_ value: " + freeSlots_.get());
+                int freeSlots_ = getWidgetManager().getInventory().search(Set.of()).getFreeSlots();
+                log(OreBuyer.class, "emptyCoalBag func: freeSlots_ value: " + freeSlots_);
                 return true;
             }, this.random(1600, 5000));
         }

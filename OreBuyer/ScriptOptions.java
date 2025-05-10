@@ -47,9 +47,6 @@ public class ScriptOptions {
         Button confirmButton = new Button("Confirm");
         root.getChildren().add(confirmButton);
 
-
-
-
         Scene scene = new Scene(root);
         confirmButton.setOnAction(actionEvent -> {
             if (oreComboBox.getSelectionModel().getSelectedIndex() >= 0) {

@@ -117,8 +117,7 @@ public class ShopInterface extends ComponentCentered implements ItemGroup {
         if (bounds == null) {
             return null;
         }
-
-        return new Point(bounds.x + 61, bounds.y + 49);
+        return new Point(bounds.x + 61, bounds.y + 40);//check this
     }
 
     @Override
@@ -144,5 +143,10 @@ public class ShopInterface extends ComponentCentered implements ItemGroup {
     @Override
     public Rectangle getGroupBounds() {
         return getBounds();
+    }
+
+    @Override
+    public ScriptCore getCore() {
+        return core;
     }
 }
