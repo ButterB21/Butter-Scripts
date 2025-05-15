@@ -6,8 +6,6 @@ import com.osmb.api.script.Script;
 import com.osmb.api.script.ScriptDefinition;
 import com.osmb.api.script.SkillCategory;
 import com.osmb.api.shape.Polygon;
-import com.osmb.api.utils.UIResult;
-import com.osmb.api.utils.UIResultList;
 import com.osmb.api.walker.WalkConfig;
 import javafx.scene.Scene;
 import com.osmb.api.item.ItemID;
@@ -110,26 +108,22 @@ public class OreBuyer extends Script {
             return 0;
         }
 
-        if (getWidgetManager().getInventory().isVisible()) {
-            ItemGroupResult coins = getWidgetManager().getInventory().search(Set.of(ItemID.COINS_995));
-            int amountOfCoins = coins.getAmount(ItemID.COINS_995);
-            log(OreBuyer.class, "Coins: " + amountOfCoins);
-            if (coins == null) {
+            ItemGroupResult inventorySnapshot = getWidgetManager().getInventory().search(Set.of(ItemID.COINS_995));
+            if (inventorySnapshot == null) {
+                // Inventory is not visible
                 return 0;
             }
+
+            int amountOfCoins = inventorySnapshot.getAmount(ItemID.COINS_995);
+            log(OreBuyer.class, "Coins: " + amountOfCoins);
+
             if (amountOfCoins < 5000) {
                 log(OreBuyer.class, "You don't have enough coins! Logging out...");
                 getWidgetManager().getLogoutTab().logout();
                 stop();
             }
-        }
 
-        int freeSlots = getWidgetManager().getInventory().search(Set.of()).getFreeSlots();
-        log(OreBuyer.class, "free slots search value in poll: " + getWidgetManager().getInventory().search(Set.of()));
-        log("freeSlots value: " + freeSlots);
-
-        //check for coal bag first to fill?
-        if (freeSlots == 0) {
+        if (inventorySnapshot.isFull()) {
             log(getClass().getSimpleName(), "Inventory full. Open bank...");
             openBank();
             return 0;
@@ -225,7 +219,7 @@ public class OreBuyer extends Script {
         log(OreBuyer.class, "oreIDs: " + oreIDs);
 
 //        ItemSearchResult itemInShop = getItemManager().scanItemGroup(shopInterface, oreIDs).getItem(selectedItemID);
-        //Workaround until recognition for coal is fixed.
+//        Workaround until recognition for coal is fixed.
         Set<ItemSearchResult> recognisedItems = shopSnapShot.getRecognisedItems();
 
         ItemSearchResult itemInShop = getResultFor(selectedItemID, recognisedItems);
@@ -280,10 +274,9 @@ public class OreBuyer extends Script {
 
     private boolean buyItem (int amount, ItemSearchResult item, int freeSlots) {
         log(OreBuyer.class, "Buying item: " + itemName);
-        shopInterface.setSelectedAmount(amount); //Taps the selected amount to buy on the shop interface
+        shopInterface.setSelectedAmount(amount);
         log(OreBuyer.class, "setSelectedAmount executed with a value of: " + amount);
 
-        //Click on the selected item to buy
         if (item.interact()) {
             log(OreBuyer.class, "Buying " + item);
             return submitTask(() -> {
@@ -300,23 +293,22 @@ public class OreBuyer extends Script {
     }
 
     private boolean fillCoalBag (int freeSlots) {
-        //check if coal bag exists in inventory
-        if (!getWidgetManager().getInventory().isVisible()) {
-            log(OreBuyer.class, "Inventory not visible.");
-            return false;
-        }
         Set<Integer> coalBagIDs = Set.of(ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG);
-        ItemGroupResult coalBag = getWidgetManager().getInventory().search(coalBagIDs);
-        //Come back to this later and try isEmpty()
-        if (!coalBag.containsAny(coalBagIDs)) {
+        ItemGroupResult inventorySnapshot = getWidgetManager().getInventory().search(coalBagIDs);
+
+        if (inventorySnapshot == null) {
+            log(OreBuyer.class, "Inventory not visible.");
+        }
+        if (!inventorySnapshot.containsAny(coalBagIDs)) {
             log(OreBuyer.class, "Coal Bag not found in the inventory");
             return false;
         }
-        log(OreBuyer.class, "coalBag result: " + coalBag);
+
+        log(OreBuyer.class, "coalBag result: " + inventorySnapshot);
         //Add check for if bank is visible?
-        if (coalBag.getRandomItem().interact("Fill")) {
+        if (inventorySnapshot.getRandomItem().interact("Fill")) {
             return submitTask(() -> {
-                int freeSlots_ = getWidgetManager().getInventory().search(Set.of()).getFreeSlots();
+                int freeSlots_ = getWidgetManager().getInventory().search(Set.of()).getFreeSlots(); //check
                 if (freeSlots_ == 0) {
                     return false;
                 }
@@ -329,23 +321,20 @@ public class OreBuyer extends Script {
 
     private boolean emptyCoalBag() {
         Set<Integer> coalBagIDs = Set.of(ItemID.COAL_BAG, ItemID.OPEN_COAL_BAG);
-        if (!getWidgetManager().getInventory().isVisible()) {
+        ItemGroupResult inventorySnapshot = getWidgetManager().getInventory().search(coalBagIDs);
+
+        if (inventorySnapshot == null) {
             log(OreBuyer.class, "Inventory not visible.");
             return false;
         }
 
-        ItemGroupResult coalBag = getWidgetManager().getInventory().search(coalBagIDs);
-        if (!coalBag.containsAny(coalBagIDs)) {
+        if (!inventorySnapshot.containsAny(coalBagIDs)) {
             log(OreBuyer.class, "Coal Bag not found in the inventory");
             return false;
         }
-        log(OreBuyer.class, "coalBag value at bank: " + coalBag);
-        if (coalBag.getRandomItem().interact("Empty")) {
-            return submitTask(() -> {
-                int freeSlots_ = getWidgetManager().getInventory().search(Set.of()).getFreeSlots();
-                log(OreBuyer.class, "emptyCoalBag func: freeSlots_ value: " + freeSlots_);
-                return true;
-            }, this.random(1600, 5000));
+
+        if (inventorySnapshot.getRandomItem().interact("Empty")) {
+            return submitTask(() -> false, this.random(1600, 5000));
         }
         return false;
     }
