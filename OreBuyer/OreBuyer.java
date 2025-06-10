@@ -218,11 +218,9 @@ public class OreBuyer extends Script {
         }
         log(OreBuyer.class, "oreIDs: " + oreIDs);
 
-//        ItemSearchResult itemInShop = getItemManager().scanItemGroup(shopInterface, oreIDs).getItem(selectedItemID);
-//        Workaround until recognition for coal is fixed.
+        ItemSearchResult itemInShop = getItemManager().scanItemGroup(shopInterface, oreIDs).getItem(selectedItemID);
         Set<ItemSearchResult> recognisedItems = shopSnapShot.getRecognisedItems();
 
-        ItemSearchResult itemInShop = getResultFor(selectedItemID, recognisedItems);
         if (itemInShop == null) {
             log(OreBuyer.class, "Could not find selected item in the shop. Logging out...");
             getWidgetManager().getLogoutTab().logout();
@@ -230,6 +228,7 @@ public class OreBuyer extends Script {
         }
 
         int itemInStock = itemInShop.getStackAmount();
+        log(OreBuyer.class, "item in shop: " + itemInShop);
         log(OreBuyer.class, "Item remaining in shop: " + itemInStock);
 
         if (itemInStock > 0) {
@@ -247,29 +246,6 @@ public class OreBuyer extends Script {
         log(OreBuyer.class, "Initial freeSlots value: " + freeSlots);
 
         buyItem(amountToBuy, itemToBuy, freeSlots);
-    }
-
-    private int getTypeForSlot(int slot) {
-        return switch (slot) {
-            case 0 -> ItemID.COPPER_ORE;
-            case 1 -> ItemID.TIN_ORE;
-            case 2 -> ItemID.IRON_ORE;
-            case 3 -> ItemID.MITHRIL_ORE;
-            case 4 -> ItemID.SILVER_ORE;
-            case 5 -> ItemID.GOLD_ORE;
-            case 6 -> ItemID.COAL;
-            default -> throw new IllegalStateException("Unexpected value: " + slot);
-        };
-    }
-
-    private ItemSearchResult getResultFor(int itemID, Set<ItemSearchResult> recognisedItems) {
-        for(ItemSearchResult itemSearchResult : recognisedItems) {
-            int realType = getTypeForSlot(itemSearchResult.getSlot());
-            if(realType == itemID) {
-                return itemSearchResult;
-            }
-        }
-        return null;
     }
 
     private boolean buyItem (int amount, ItemSearchResult item, int freeSlots) {
