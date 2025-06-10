@@ -108,20 +108,20 @@ public class OreBuyer extends Script {
             return 0;
         }
 
-            ItemGroupResult inventorySnapshot = getWidgetManager().getInventory().search(Set.of(ItemID.COINS_995));
-            if (inventorySnapshot == null) {
-                // Inventory is not visible
-                return 0;
-            }
+        ItemGroupResult inventorySnapshot = getWidgetManager().getInventory().search(Set.of(ItemID.COINS_995));
+        if (inventorySnapshot == null) {
+            // Inventory is not visible
+            return 0;
+        }
 
-            int amountOfCoins = inventorySnapshot.getAmount(ItemID.COINS_995);
-            log(OreBuyer.class, "Coins: " + amountOfCoins);
+        int amountOfCoins = inventorySnapshot.getAmount(ItemID.COINS_995);
+        log(OreBuyer.class, "Coins: " + amountOfCoins);
 
-            if (amountOfCoins < 5000) {
-                log(OreBuyer.class, "You don't have enough coins! Logging out...");
-                getWidgetManager().getLogoutTab().logout();
-                stop();
-            }
+        if (amountOfCoins < 5000) {
+            log(OreBuyer.class, "You don't have enough coins! Logging out...");
+            getWidgetManager().getLogoutTab().logout();
+            stop();
+        }
 
         if (inventorySnapshot.isFull()) {
             log(getClass().getSimpleName(), "Inventory full. Open bank...");
@@ -257,6 +257,10 @@ public class OreBuyer extends Script {
             log(OreBuyer.class, "Buying " + item);
             return submitTask(() -> {
                 inventorySnapshot = getWidgetManager().getInventory().search(Set.of());
+                if (inventorySnapshot == null) {
+                    log(OreBuyer.class, "Inventory is not visible");
+                    return false;
+                }
                 log(OreBuyer.class, "buyItem free slots: " + inventorySnapshot);
                 if (inventorySnapshot.isEmpty()) {
                     return false;
