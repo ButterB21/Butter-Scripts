@@ -345,7 +345,7 @@ public class OreBuyer extends Script {
     }
 
     private void hopWorlds() {
-        forceHop();
+        getProfileManager().forceHop();
         hopFlag = false;
     }
 }
