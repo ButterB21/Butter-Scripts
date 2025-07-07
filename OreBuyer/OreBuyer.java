@@ -6,9 +6,15 @@ import com.osmb.api.script.Script;
 import com.osmb.api.script.ScriptDefinition;
 import com.osmb.api.script.SkillCategory;
 import com.osmb.api.shape.Polygon;
+import com.osmb.api.visual.drawing.Canvas;
 import com.osmb.api.walker.WalkConfig;
 import javafx.scene.Scene;
 import com.osmb.api.item.ItemID;
+
+import java.awt.*;
+import java.awt.Color;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Arrays;
 import java.util.List;
 import com.osmb.api.utils.timing.Timer;
@@ -33,6 +39,10 @@ public class OreBuyer extends Script {
     private boolean hopFlag = false;
     private boolean useCoalBag = false;
     private ItemGroupResult inventorySnapshot;
+    private long startTime = 0;
+    private int oresBought = 0;
+    private static final Font ARIEL = new Font("Arial", Font.PLAIN, 14);
+
     private final Predicate<RSObject> bankQuery = gameObject -> {
         // if object has no name
         if (gameObject.getName() == null) {
@@ -88,7 +98,31 @@ public class OreBuyer extends Script {
             getWidgetManager().getLogoutTab().logout();
             stop();
         }
+        startTime = System.currentTimeMillis();
     }
+
+    @Override
+    public void onPaint(Canvas c) {
+        DecimalFormat f = new DecimalFormat("#,###");
+        DecimalFormatSymbols s = new DecimalFormatSymbols();
+        f.setDecimalFormatSymbols(s);
+
+        long now = System.currentTimeMillis();
+        long elapsed = now - startTime;
+        String runtime = formatTime(elapsed);
+
+        int oresPerHour = elapsed > 0 ? (int) ((oresBought * 3600000L) / elapsed) : 0;
+        int y = 40;
+
+        c.fillRect(5, y, 220, 110, Color.BLACK.getRGB(), 1);
+        c.drawRect(5, y, 220, 110, Color.WHITE.getRGB());
+
+        c.drawText("Ores bought: " + f.format(oresBought), 10, y += 25, Color.WHITE.getRGB(), ARIEL);
+        c.drawText("Ores/hr: " + f.format(oresPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        c.drawText("Runtime: " + runtime, 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        c.drawText("Script version: 1.0", 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+    }
+
 
     @Override
     public int poll() {
@@ -245,7 +279,12 @@ public class OreBuyer extends Script {
         int freeSlots = getWidgetManager().getInventory().search(Set.of()).getFreeSlots();
         log(OreBuyer.class, "Initial freeSlots value: " + freeSlots);
 
-        buyItem(amountToBuy, itemToBuy, freeSlots);
+        int before = getWidgetManager().getInventory().search(Set.of(selectedItemID)).getAmount(selectedItemID);
+        if(buyItem(amountToBuy, itemToBuy, freeSlots)) {
+            int after = getWidgetManager().getInventory().search(Set.of(selectedItemID)).getAmount(selectedItemID);
+            int bought = Math.max(0, after - before);
+            oresBought += bought;
+        }
     }
 
     private boolean buyItem (int amount, ItemSearchResult item, int freeSlots) {
@@ -327,5 +366,13 @@ public class OreBuyer extends Script {
     private void hopWorlds() {
         getProfileManager().forceHop();
         hopFlag = false;
+    }
+
+    private String formatTime(long ms) {
+        long s = ms / 1000;
+        long h = s / 3600;
+        long m = (s % 3600) / 60;
+        long sec = s % 60;
+        return String.format("%02d:%02d:%02d", h, m, sec);
     }
 }
