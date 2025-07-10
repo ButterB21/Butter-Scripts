@@ -25,7 +25,7 @@ import java.util.function.Predicate;
 
 
 
-@ScriptDefinition(name = "OreBuyer", author = "Butter", version = 1.0, description = "Buy Ores and Bank", skillCategory = SkillCategory.OTHER)
+@ScriptDefinition(name = "OreBuyer", author = "Butter", version = 1.5, description = "Buy Ores and Bank", skillCategory = SkillCategory.OTHER)
 public class OreBuyer extends Script {
 
     public static final String[] BANK_NAMES = {"Bank", "Chest", "Bank booth", "Bank chest", "Grand Exchange booth"};
@@ -120,7 +120,7 @@ public class OreBuyer extends Script {
         c.drawText("Ores bought: " + f.format(oresBought), 10, y += 25, Color.WHITE.getRGB(), ARIEL);
         c.drawText("Ores/hr: " + f.format(oresPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
         c.drawText("Runtime: " + runtime, 10, y += 20, Color.WHITE.getRGB(), ARIEL);
-        c.drawText("Script version: 1.0", 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        c.drawText("Script version: 1.5", 10, y += 20, Color.WHITE.getRGB(), ARIEL);
     }
 
 
@@ -157,7 +157,7 @@ public class OreBuyer extends Script {
             stop();
         }
 
-        if (inventorySnapshot.isFull()) {
+        if (inventorySnapshot.getFreeSlots() <= 1) {
             log(getClass().getSimpleName(), "Inventory full. Open bank...");
             openBank();
             return 0;
