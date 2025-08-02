@@ -37,14 +37,8 @@ public class CatchMoth extends com.moths.tasks.Task {
             new SearchablePixel(-11974309, new SingleThresholdComparator(2), ColorModel.HSL),
     };
 
-//    private static final SearchablePixel[] highlightPixels = new SearchablePixel[] {
-//       new SearchablePixel( -14155777, ToleranceComparator.ZERO_TOLERANCE, ColorModel.RGB), new SearchablePixel( -15139073, ToleranceComparator.ZERO_TOLERANCE, ColorModel.RGB),
-//
-//    };
     private static final SearchablePixel highlightPixels = new SearchablePixel(-14155777, new SingleThresholdComparator(2), ColorModel.HSL);
-
-    private static final PolyArea MOONLIGHT_MOTH_WANDERAREA = new PolyArea(List.of(new WorldPosition(1573, 9450, 0),new WorldPosition(1577, 9447, 0),new WorldPosition(1575, 9442, 0),new WorldPosition(1573, 9437, 0),new WorldPosition(1563, 9433, 0),new WorldPosition(1556, 9433, 0),new WorldPosition(1555, 9439, 0),new WorldPosition(1561, 9443, 0)));
-
+    private static final PolyArea MOONLIGHT_MOTH_WANDERAREA = new PolyArea(List.of(new WorldPosition(1573, 9451, 0),new WorldPosition(1577, 9446, 0),new WorldPosition(1575, 9442, 0),new WorldPosition(1573, 9437, 0),new WorldPosition(1557, 9433, 0),new WorldPosition(1553, 9437, 0)));
 
 
     @Override
@@ -56,20 +50,9 @@ public class CatchMoth extends com.moths.tasks.Task {
         return false;
     }
 
-
-    //ensure player position is in moths area
-    //search tiles containing moth npcs
-    //select moth closest to player?
-    //if player animating, wait & have timeout
-    //else (or after timeout) restart task execution.
-    //if animation is done -> check inventory to see if amount of moonlight jar increased (or if # of butterfly jars decrease)
-    //if yes, successful, re run task & update.
-    // if no, re run task
-
     @Override
     public void execute() {
         ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
-
         if (inventorySnapshot == null) {
             script.log(CatchMoth.class, "Cannot get inventory!");
             return;
@@ -80,12 +63,10 @@ public class CatchMoth extends com.moths.tasks.Task {
             return;
         }
 
-//        script.log(CatchMoth.class, "inventory snapshot 1 : " + script.getWidgetManager().getInventory().search(Set.of()).getAmount(ItemID.BUTTERFLY_JAR) + " jars");
         script.log(CatchMoth.class, "inventory snapshot 2: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars");
         int currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
 
         WorldPosition myPosition = script.getWorldPosition();
-
         if (!MOONLIGHT_MOTH_WANDERAREA.contains(myPosition)){
             script.log(CatchMoth.class, "Player is not in the moth wander area! Walking to the area...");
             walkToArea(MOONLIGHT_MOTH_WANDERAREA);
@@ -101,9 +82,7 @@ public class CatchMoth extends com.moths.tasks.Task {
         script.log(CatchMoth.class, "Finding closest moth to catch...");
 
         WorldPosition closestMoth = script.getWorldPosition().getClosest(validPositions);
-
         Polygon poly = script.getSceneProjector().getTilePoly(closestMoth, true);
-
         if (poly == null) {
             script.log(CatchMoth.class, "Polygon for closest moth is null at position: " + closestMoth);
             return;
@@ -164,6 +143,11 @@ public class CatchMoth extends com.moths.tasks.Task {
             Polygon poly = script.getSceneProjector().getTilePoly(position);
             if (poly == null) {
                 script.log(CatchMoth.class, "Polygon inside the search area is null.");
+                return;
+            }
+
+            if (script.getWorldPosition().distanceTo(position) > 20) {
+                script.log(CatchMoth.class, "Moth is too far away, looking for a closer option...");
                 return;
             }
 
