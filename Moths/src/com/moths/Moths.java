@@ -45,8 +45,8 @@ public class Moths extends Script {
         return new int[]{6291}; // Example region ID
     }
 
-    @Override
-    public boolean promptBankTabDialogue() {
-        return true;
-    }
+//    @Override
+//    public boolean promptBankTabDialogue() {
+//        return true;
+//    }
 }

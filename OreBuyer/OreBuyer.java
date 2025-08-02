@@ -253,7 +253,7 @@ public class OreBuyer extends Script {
         log(OreBuyer.class, "oreIDs: " + oreIDs);
 
         ItemSearchResult itemInShop = getItemManager().scanItemGroup(shopInterface, oreIDs).getItem(selectedItemID);
-        Set<ItemSearchResult> recognisedItems = shopSnapShot.getRecognisedItems();
+//        Set<ItemSearchResult> recognisedItems = shopSnapShot.getRecognisedItems();
 
         if (itemInShop == null) {
             log(OreBuyer.class, "Could not find selected item in the shop. Logging out...");

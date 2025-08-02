@@ -2,6 +2,7 @@ package moths.tasks;
 
 import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemID;
+import com.osmb.api.item.ItemSearchResult;
 import com.osmb.api.location.area.impl.PolyArea;
 import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.LocalPosition;
@@ -10,11 +11,14 @@ import com.osmb.api.scene.RSTile;
 import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
 import com.osmb.api.shape.Rectangle;
+import com.osmb.api.ui.tabs.Inventory;
 import com.osmb.api.utils.UIResultList;
 import com.osmb.api.utils.Utils;
 import com.osmb.api.visual.SearchablePixel;
 import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.ToleranceComparator;
+import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
+import com.osmb.api.walker.WalkConfig;
 import com.osmb.api.world.World;
 
 import java.util.ArrayList;
@@ -28,12 +32,16 @@ public class CatchMoth extends com.moths.tasks.Task {
     }
 
     private static final SearchablePixel[] MOONLIGHT_MOTH_CLUSTER = new SearchablePixel[] {
-            new SearchablePixel(-14221313, ToleranceComparator.ZERO_TOLERANCE, ColorModel.RGB),
-            new SearchablePixel(-11035192, ToleranceComparator.ZERO_TOLERANCE, ColorModel.RGB),
-            new SearchablePixel(-11974309, ToleranceComparator.ZERO_TOLERANCE, ColorModel.RGB),
+            new SearchablePixel(-14221313, new SingleThresholdComparator(2), ColorModel.HSL),
+            new SearchablePixel(-11035192, new SingleThresholdComparator(2), ColorModel.HSL),
+            new SearchablePixel(-11974309, new SingleThresholdComparator(2), ColorModel.HSL),
     };
 
-    private static final SearchablePixel highlightPixels = new SearchablePixel(-14155777, ToleranceComparator.ZERO_TOLERANCE, ColorModel.RGB);
+//    private static final SearchablePixel[] highlightPixels = new SearchablePixel[] {
+//       new SearchablePixel( -14155777, ToleranceComparator.ZERO_TOLERANCE, ColorModel.RGB), new SearchablePixel( -15139073, ToleranceComparator.ZERO_TOLERANCE, ColorModel.RGB),
+//
+//    };
+    private static final SearchablePixel highlightPixels = new SearchablePixel(-14155777, new SingleThresholdComparator(2), ColorModel.HSL);
 
     private static final PolyArea MOONLIGHT_MOTH_WANDERAREA = new PolyArea(List.of(new WorldPosition(1573, 9450, 0),new WorldPosition(1577, 9447, 0),new WorldPosition(1575, 9442, 0),new WorldPosition(1573, 9437, 0),new WorldPosition(1563, 9433, 0),new WorldPosition(1556, 9433, 0),new WorldPosition(1555, 9439, 0),new WorldPosition(1561, 9443, 0)));
 
@@ -67,64 +75,84 @@ public class CatchMoth extends com.moths.tasks.Task {
             return;
         }
 
-        if (inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) == 0) {
+        if (inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) <= 0) {
             script.log(CatchMoth.class, "Inventory is full!");
             return;
         }
 
 //        script.log(CatchMoth.class, "inventory snapshot 1 : " + script.getWidgetManager().getInventory().search(Set.of()).getAmount(ItemID.BUTTERFLY_JAR) + " jars");
         script.log(CatchMoth.class, "inventory snapshot 2: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars");
-
         int currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+
         WorldPosition myPosition = script.getWorldPosition();
-        //check to see if player is in moth wander area!...
 
-
-//        List<WorldPosition> validPositions = getValidMothPositions();
+        if (!MOONLIGHT_MOTH_WANDERAREA.contains(myPosition)){
+            script.log(CatchMoth.class, "Player is not in the moth wander area! Walking to the area...");
+            walkToArea(MOONLIGHT_MOTH_WANDERAREA);
+            return;
+        }
 
         List<WorldPosition> validPositions = butterFlyPositions();
-
         if (validPositions == null || validPositions.isEmpty()) {
-            //walk to moth area...
             script.log(CatchMoth.class, "no valid positions found for moths!");
             return;
         }
 
-        script.log(CatchMoth.class, "Catching closest moth...");
-        WorldPosition closestMoth = (WorldPosition) Utils.getClosestPosition(myPosition, validPositions.toArray(new WorldPosition[0]));
+        script.log(CatchMoth.class, "Finding closest moth to catch...");
 
-        Polygon poly = script.getSceneProjector().getTileCube(closestMoth.getX(),closestMoth.getY() , closestMoth.getPlane(),165, 30, true);
-        poly = poly.getResized(0.55);
+        WorldPosition closestMoth = script.getWorldPosition().getClosest(validPositions);
 
-        Rectangle highlightArea = script.getUtils().getHighlightBounds(poly, MOONLIGHT_MOTH_CLUSTER);
+        Polygon poly = script.getSceneProjector().getTilePoly(closestMoth, true);
 
-        if (highlightArea == null) {
-            script.log(CatchMoth.class, "Highlight Area is null!" + closestMoth);
+        if (poly == null) {
+            script.log(CatchMoth.class, "Polygon for closest moth is null at position: " + closestMoth);
             return;
         }
 
-        if (!script.getFinger().tap(highlightArea)) {
+        Rectangle mothBounds = script.getUtils().getHighlightBounds(poly, MOONLIGHT_MOTH_CLUSTER);
+        if (mothBounds == null) {
+            script.log(CatchMoth.class, "No highlight bounds found for moth at position: " + closestMoth);
+            return;
+        }
+
+        if (!script.getFinger().tap(mothBounds, "catch") ) {
             script.log(CatchMoth.class, "Failed to tap on moth at position: " + closestMoth);
             return;
         }
 
         script.submitHumanTask(() -> {
-            int postButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
-            if (postButterFlyJarCount > currButterFlyJarCount) {
+            ItemGroupResult currInvSnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
+            if (currInvSnapshot == null) {
+                script.log(CatchMoth.class, "Current inventory snapshot is null!");
+                return false;
+            }
+
+            int postButterFlyJarCount = currInvSnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+            if (postButterFlyJarCount < currButterFlyJarCount) {
                 script.log(CatchMoth.class, "Successfully caught a moth! Current jar count: " + postButterFlyJarCount + " jars");
                 return true;
             }
-            script.log(CatchMoth.class, "Failed to catch moth. Current jar count: " + postButterFlyJarCount + " jars");
+            script.log(CatchMoth.class, "Attempting to catch moth..." + postButterFlyJarCount + " jars");
             return false;
-
-        }, script.random(3000, 6000));
-
+        }, Utils.random(7000, 12000));
 
     }
 
+    private void walkToArea(PolyArea MOONLIGHT_MOTH_WANDERAREA) {
+        WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(3);
+        builder.breakCondition(() -> {
+            WorldPosition myPosition = script.getWorldPosition();
+            if (myPosition == null) {
+                return false;
+            }
+            return MOONLIGHT_MOTH_WANDERAREA.contains(myPosition);
+        });
+
+        script.getWalker().walkTo(MOONLIGHT_MOTH_WANDERAREA.getRandomPosition(), builder.build());
+    }
+
     private List<WorldPosition> butterFlyPositions() {
-        RectangleArea testArea = new RectangleArea(1561, 9436, 15, 14, 0);
-        List<WorldPosition> searchArea = testArea.getAllWorldPositions();
+        List<WorldPosition> searchArea = MOONLIGHT_MOTH_WANDERAREA.getAllWorldPositions();
 
         if (searchArea.isEmpty()) {
             script.log(CatchMoth.class, "No surrounding positions found in the search area.");
@@ -134,61 +162,16 @@ public class CatchMoth extends com.moths.tasks.Task {
         List<WorldPosition> validMothPositions = new ArrayList<>();
         searchArea.forEach(position -> {
             Polygon poly = script.getSceneProjector().getTilePoly(position);
+            if (poly == null) {
+                script.log(CatchMoth.class, "Polygon inside the search area is null.");
+                return;
+            }
 
             if (script.getUtils().getHighlightBounds(poly, highlightPixels) != null) {
+                script.log(CatchMoth.class, "Highlighted Moth found.");
                 validMothPositions.add(position);
             }
-
         });
-
         return validMothPositions;
-    }
-
-    private List<WorldPosition> getValidMothPositions() {
-
-
-        UIResultList<WorldPosition> npcPositions = script.getWidgetManager().getMinimap().getNPCPositions();
-
-        if (npcPositions.isNotVisible()) {
-            script.log(CatchMoth.class, "Minimap NPC positions are not visible!");
-            return null;
-        }
-
-        if (npcPositions.isNotFound()) {
-            script.log(CatchMoth.class, "No moths found in the current area.");
-            return null;
-        }
-
-        List<WorldPosition> mothPositions = new ArrayList<>();
-        npcPositions.forEach(npcPosition -> {
-
-            RectangleArea tempArea = new RectangleArea(1561, 9436, 15, 14, 0);
-            if (!tempArea.contains(npcPosition)) {
-                script.log(CatchMoth.class, "NPC position " + npcPosition + " is not within the moth wander area.");
-                return;
-            }
-            script.log(CatchMoth.class, "Checking NPC position: " + npcPosition);
-
-            //check why we use localposition again
-            LocalPosition localPosition = npcPosition.toLocalPosition(this.script);
-
-//            Polygon poly = script.getSceneProjector().getTileCube(localPosition.getX(), localPosition.getY(), localPosition.getPlane(), 165, 30,true);
-
-            Polygon poly = script.getSceneProjector().getTilePoly(localPosition);
-            if (poly == null) {
-                script.log(CatchMoth.class, "Polygon for NPC position " + npcPosition + " is null.");
-                return;
-            }
-
-//            poly = poly.getResized(0.55);
-
-            if (script.getPixelAnalyzer().findPixel(poly, highlightPixels) != null) {
-                script.log(CatchMoth.class, "Found moth at position: " + npcPosition);
-                mothPositions.add(npcPosition);
-
-            }
-        });
-
-        return mothPositions;
     }
 }
