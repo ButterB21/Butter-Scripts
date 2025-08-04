@@ -120,6 +120,7 @@ public class HandleBank extends com.moths.tasks.Task {
         if (bankSnapShot.getAmount(ItemID.BUTTERFLY_JAR) <= 0) {
             //handle no jars in bank when region id is fixed...
             script.log(HandleBank.class, "No butterfly jars in the bank! Stopping script.");
+            script.getWidgetManager().getBank().close();
             script.getWidgetManager().getLogoutTab().logout();
             script.stop();
             return false;
