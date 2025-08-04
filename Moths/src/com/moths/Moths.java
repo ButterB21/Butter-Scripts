@@ -4,7 +4,9 @@ import com.moths.tasks.Task;
 import com.osmb.api.script.Script;
 import com.osmb.api.script.ScriptDefinition;
 import com.osmb.api.script.SkillCategory;
+import moths.data.MothData;
 import moths.tasks.CatchMoth;
+import moths.tasks.HandleBank;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +28,7 @@ public class Moths extends Script {
     @Override
     public void onStart() {
         tasks.add(new CatchMoth(this));
+        tasks.add(new HandleBank(this));
     }
 
     @Override
@@ -42,11 +45,11 @@ public class Moths extends Script {
     @Override
     public int[] regionsToPrioritise() {
         // Define regions to prioritise
-        return new int[]{6291}; // Example region ID
+        return new int[]{MothData.MOONLIGHT_MOTH.getMothRegion(), MothData.MOONLIGHT_MOTH.getBankRegion()}; // Example region ID
     }
 
-//    @Override
-//    public boolean promptBankTabDialogue() {
-//        return true;
-//    }
+    @Override
+    public boolean promptBankTabDialogue() {
+        return true;
+    }
 }

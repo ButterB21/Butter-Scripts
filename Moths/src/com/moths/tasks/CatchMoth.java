@@ -2,24 +2,21 @@ package moths.tasks;
 
 import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemID;
-import com.osmb.api.item.ItemSearchResult;
 import com.osmb.api.location.area.impl.PolyArea;
-import com.osmb.api.location.area.impl.RectangleArea;
-import com.osmb.api.location.position.types.LocalPosition;
 import com.osmb.api.location.position.types.WorldPosition;
-import com.osmb.api.scene.RSTile;
+import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
 import com.osmb.api.shape.Rectangle;
-import com.osmb.api.ui.tabs.Inventory;
-import com.osmb.api.utils.UIResultList;
 import com.osmb.api.utils.Utils;
 import com.osmb.api.visual.SearchablePixel;
 import com.osmb.api.visual.color.ColorModel;
-import com.osmb.api.visual.color.tolerance.ToleranceComparator;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
 import com.osmb.api.world.World;
+import jdk.jshell.execution.Util;
+import moths.data.MothData;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,22 +28,23 @@ public class CatchMoth extends com.moths.tasks.Task {
         super(script);
     }
 
-    private static final SearchablePixel[] MOONLIGHT_MOTH_CLUSTER = new SearchablePixel[] {
-            new SearchablePixel(-14221313, new SingleThresholdComparator(2), ColorModel.HSL),
-            new SearchablePixel(-11035192, new SingleThresholdComparator(2), ColorModel.HSL),
-            new SearchablePixel(-11974309, new SingleThresholdComparator(2), ColorModel.HSL),
-    };
-
-    private static final SearchablePixel highlightPixels = new SearchablePixel(-14155777, new SingleThresholdComparator(2), ColorModel.HSL);
-    private static final PolyArea MOONLIGHT_MOTH_WANDERAREA = new PolyArea(List.of(new WorldPosition(1573, 9451, 0),new WorldPosition(1577, 9446, 0),new WorldPosition(1575, 9442, 0),new WorldPosition(1573, 9437, 0),new WorldPosition(1557, 9433, 0),new WorldPosition(1553, 9437, 0)));
-
+    private static final SearchablePixel HIGHLIGHT_PIXEL = new SearchablePixel(-14155777, new SingleThresholdComparator(2), ColorModel.HSL);
+    private final MothData mothType = MothData.MOONLIGHT_MOTH;
 
     @Override
     public boolean activate() {
-        if (script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR)) != null) {
-            script.log(CatchMoth.class, "Catch Moth task activated...");
+        WorldPosition myPosition = script.getWorldPosition();
+        if (myPosition == null) {
+            script.log(CatchMoth.class, "Cannot get player position! Task will not activate.");
+            return false;
+        }
+
+        if (mothType.getMothRegion() == myPosition.getRegionID()) {
+            script.log(CatchMoth.class, "Activaging Catch Moth Task...");
             return true;
         }
+
+        script.log(CatchMoth.class, "Player not in moth region...");
         return false;
     }
 
@@ -60,20 +58,41 @@ public class CatchMoth extends com.moths.tasks.Task {
 
         if (inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) <= 0) {
             script.log(CatchMoth.class, "Inventory is full!");
-            return;
+
+            if (mothType == MothData.MOONLIGHT_MOTH) {
+                RSObject stairs = script.getObjectManager().getClosestObject("Stairs");
+                if (stairs == null) {
+                    script.log(CatchMoth.class, "Saris obj is null!");
+                    return;
+                }
+
+                if (!stairs.interact("Climb-up")) {
+                    script.log(CatchMoth.class, "Failed to interact with stairs to go up!");
+                    return;
+                }
+
+                WorldPosition myPosition = script.getWorldPosition();
+                if (myPosition == null) {
+                    script.log(CatchMoth.class, "Player position is null after climbing stairs!");
+                    return;
+                }
+
+                script.submitHumanTask(() -> mothType.getMothRegion() != myPosition.getRegionID(), Utils.random(15000, 20000));
+                return;
+            }
         }
 
-        script.log(CatchMoth.class, "inventory snapshot 2: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars");
+        script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars");
         int currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
 
         WorldPosition myPosition = script.getWorldPosition();
-        if (!MOONLIGHT_MOTH_WANDERAREA.contains(myPosition)){
+        if (!mothType.getMothArea().contains(myPosition)){
             script.log(CatchMoth.class, "Player is not in the moth wander area! Walking to the area...");
-            walkToArea(MOONLIGHT_MOTH_WANDERAREA);
+            walkToArea(mothType.getMothArea());
             return;
         }
 
-        List<WorldPosition> validPositions = butterFlyPositions();
+        List<WorldPosition> validPositions = butterFlyPositions(mothType.getMothArea());
         if (validPositions == null || validPositions.isEmpty()) {
             script.log(CatchMoth.class, "no valid positions found for moths!");
             return;
@@ -88,7 +107,7 @@ public class CatchMoth extends com.moths.tasks.Task {
             return;
         }
 
-        Rectangle mothBounds = script.getUtils().getHighlightBounds(poly, MOONLIGHT_MOTH_CLUSTER);
+        Rectangle mothBounds = script.getUtils().getHighlightBounds(poly, mothType.getMothClusterPixels());
         if (mothBounds == null) {
             script.log(CatchMoth.class, "No highlight bounds found for moth at position: " + closestMoth);
             return;
@@ -107,7 +126,7 @@ public class CatchMoth extends com.moths.tasks.Task {
             }
 
             int postButterFlyJarCount = currInvSnapshot.getAmount(ItemID.BUTTERFLY_JAR);
-            if (postButterFlyJarCount < currButterFlyJarCount) {
+            if (postButterFlyJarCount < currButterFlyJarCount && !script.getPixelAnalyzer().isPlayerAnimating(0.4)) {//check if player is no longer animating
                 script.log(CatchMoth.class, "Successfully caught a moth! Current jar count: " + postButterFlyJarCount + " jars");
                 return true;
             }
@@ -117,21 +136,21 @@ public class CatchMoth extends com.moths.tasks.Task {
 
     }
 
-    private void walkToArea(PolyArea MOONLIGHT_MOTH_WANDERAREA) {
+    private void walkToArea(PolyArea mothWanderArea) {
         WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(3);
         builder.breakCondition(() -> {
             WorldPosition myPosition = script.getWorldPosition();
             if (myPosition == null) {
                 return false;
             }
-            return MOONLIGHT_MOTH_WANDERAREA.contains(myPosition);
+            return mothWanderArea.contains(myPosition);
         });
 
-        script.getWalker().walkTo(MOONLIGHT_MOTH_WANDERAREA.getRandomPosition(), builder.build());
+        script.getWalker().walkTo(mothWanderArea.getRandomPosition(), builder.build());
     }
 
-    private List<WorldPosition> butterFlyPositions() {
-        List<WorldPosition> searchArea = MOONLIGHT_MOTH_WANDERAREA.getAllWorldPositions();
+    private List<WorldPosition> butterFlyPositions(PolyArea mothWanderArea) {
+        List<WorldPosition> searchArea = mothWanderArea.getAllWorldPositions();
 
         if (searchArea.isEmpty()) {
             script.log(CatchMoth.class, "No surrounding positions found in the search area.");
@@ -151,7 +170,7 @@ public class CatchMoth extends com.moths.tasks.Task {
                 return;
             }
 
-            if (script.getUtils().getHighlightBounds(poly, highlightPixels) != null) {
+            if (script.getUtils().getHighlightBounds(poly, HIGHLIGHT_PIXEL) != null) {
                 script.log(CatchMoth.class, "Highlighted Moth found.");
                 validMothPositions.add(position);
             }
