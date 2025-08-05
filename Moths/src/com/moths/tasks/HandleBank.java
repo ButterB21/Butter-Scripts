@@ -2,11 +2,15 @@ package moths.tasks;
 
 import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemID;
-import com.osmb.api.location.area.impl.PolyArea;
+import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
+import com.osmb.api.utils.UIResultList;
 import com.osmb.api.utils.Utils;
+import com.osmb.api.visual.SearchablePixel;
+import com.osmb.api.visual.color.ColorModel;
+import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
 import moths.data.MothData;
 
@@ -22,6 +26,9 @@ public class HandleBank extends com.moths.tasks.Task {
     }
 
     MothData moth;
+    private static final SearchablePixel HIGHLIGHT_PIXEL = new SearchablePixel(-14221313, new SingleThresholdComparator(2), ColorModel.HSL);
+    private static final boolean buyJars = false;
+    private static final int amountToBuy = 100;
 
     public static final String[] BANK_NAMES = {"Bank", "Chest", "Bank booth", "Bank chest", "Grand Exchange booth", "Bank counter", "Bank table", "Banker"};
     public static final String[] BANK_ACTIONS = {"bank", "open", "use"};
@@ -119,6 +126,9 @@ public class HandleBank extends com.moths.tasks.Task {
 
         if (bankSnapShot.getAmount(ItemID.BUTTERFLY_JAR) <= 0) {
             //handle no jars in bank when region id is fixed...
+            if (buyJars){
+                script.log(HandleBank.class, "Purchasing jars...");
+            }
             script.log(HandleBank.class, "No butterfly jars in the bank! Stopping script.");
             script.getWidgetManager().getBank().close();
             script.getWidgetManager().getLogoutTab().logout();
@@ -128,7 +138,6 @@ public class HandleBank extends com.moths.tasks.Task {
 
         script.log(HandleBank.class, "Withdrawing butterfly jars from bank...");
         script.getWidgetManager().getBank().withdraw(ItemID.BUTTERFLY_JAR, Integer.MAX_VALUE);
-
         return true;
     }
 
@@ -171,6 +180,40 @@ public class HandleBank extends com.moths.tasks.Task {
                 }, Utils.random(10000, 15000));
             }
         }
+
+    }
+
+    private void buyJars() {
+        RectangleArea npcPos = new RectangleArea(1560, 3058, 4, 4, 0);
+
+        WorldPosition myPosition = script.getWorldPosition();
+        if (myPosition == null) {
+            script.log(HandleBank.class, "Cannot get player position!");
+            return;
+        }
+
+        if (!npcPos.contains(myPosition)) {
+            script.log(HandleBank.class, "Walking to NPC to buy jars...");
+            WalkConfig.Builder builder = new WalkConfig.Builder();
+            builder.breakCondition(() -> {
+                WorldPosition currentPosition = script.getWorldPosition();
+                if (currentPosition == null) {
+                    return false;
+                }
+                return npcPos.contains(currentPosition);
+            });
+
+            script.getWalker().walkTo(npcPos.getRandomPosition(), new WalkConfig.Builder().tileRandomisationRadius(2).breakDistance(2).build());
+        }
+
+        UIResultList<WorldPosition> validNPCPositions = script.getWidgetManager().getMinimap().getNPCPositions();
+        if (validNPCPositions == null || validNPCPositions.isEmpty()) {
+            script.log(HandleBank.class, "No valid NPC positions found to buy jars!");
+            return;
+        }
+
+
+
 
     }
 }

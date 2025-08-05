@@ -13,14 +13,13 @@ import com.osmb.api.visual.SearchablePixel;
 import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
-import com.osmb.api.world.World;
-import jdk.jshell.execution.Util;
 import moths.data.MothData;
-
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import static moths.Moths.mothsCaught;
 
 public class CatchMoth extends com.moths.tasks.Task {
 
@@ -128,6 +127,7 @@ public class CatchMoth extends com.moths.tasks.Task {
             int postButterFlyJarCount = currInvSnapshot.getAmount(ItemID.BUTTERFLY_JAR);
             if (postButterFlyJarCount < currButterFlyJarCount && !script.getPixelAnalyzer().isPlayerAnimating(0.4)) {//check if player is no longer animating
                 script.log(CatchMoth.class, "Successfully caught a moth! Current jar count: " + postButterFlyJarCount + " jars");
+                mothsCaught++;
                 return true;
             }
             script.log(CatchMoth.class, "Attempting to catch moth..." + postButterFlyJarCount + " jars");
