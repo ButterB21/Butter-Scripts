@@ -67,6 +67,8 @@ public class Moths extends Script {
         log(Moths.class, "Selected Method: " + ui.selectedMethod);
         log(Moths.class, "Selected Moth Type: " + Arrays.toString(ui.getMothItemIdsToCatch()));
         log(Moths.class, "Restocking: " + ui.isRestocking);
+        tasks.add(new CatchMoth(this));
+        tasks.add(new HandleBank(this));
     }
 
     @Override
