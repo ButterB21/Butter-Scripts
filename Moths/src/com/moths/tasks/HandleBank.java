@@ -2,6 +2,7 @@ package moths.tasks;
 
 import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemID;
+import com.osmb.api.location.area.Area;
 import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.scene.RSObject;
@@ -73,7 +74,7 @@ public class HandleBank extends com.moths.tasks.Task {
             return;
         }
 
-        walkToBank(moth);
+        walkToBank(moth.getBankArea());
 
         if (!openBank()) {
             script.log(HandleBank.class, "Failed to open bank!");
@@ -142,7 +143,7 @@ public class HandleBank extends com.moths.tasks.Task {
     }
 
 
-    private void walkToBank(MothData moth) {
+    private void walkToBank(Area bankArea) {
         script.log(HandleBank.class, "Walking to the bank...");
 
         WalkConfig.Builder builder = new WalkConfig.Builder();
@@ -151,9 +152,9 @@ public class HandleBank extends com.moths.tasks.Task {
             if (currentPosition == null) {
                 return false;
             }
-            return moth.getBankArea().contains(currentPosition);
+            return bankArea.contains(currentPosition);
         });
-        script.getWalker().walkTo(moth.getBankArea().getRandomPosition(), builder.build());
+        script.getWalker().walkTo(bankArea.getRandomPosition(), builder.build());
 
     }
 

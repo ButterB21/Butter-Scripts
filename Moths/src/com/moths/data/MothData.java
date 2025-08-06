@@ -19,6 +19,9 @@ public enum MothData {
                     new SearchablePixel(-11035192, new SingleThresholdComparator(2), ColorModel.HSL),
                     new SearchablePixel(-11974309, new SingleThresholdComparator(2), ColorModel.HSL) },
             6291, 6191, new RectangleArea(1541, 3038, 9, 5, 0));
+//    RUBY_HARVEST(
+//            new PolyArea(List.of(new WorldPosition(1239, 3748, 0),new WorldPosition(1237, 3747, 0),new WorldPosition(1232, 3746, 0),new WorldPosition(1232, 3740, 0),new WorldPosition(1237, 3739, 0),new WorldPosition(1241, 3739, 0),new WorldPosition(1241, 3746, 0),new WorldPosition(1243, 3746, 0),new WorldPosition(1243, 3744, 0),));
+//    );
 
     private final PolyArea mothArea;
     private final SearchablePixel[] mothClusterPixels;

@@ -4,16 +4,18 @@ import com.moths.tasks.Task;
 import com.osmb.api.script.Script;
 import com.osmb.api.script.ScriptDefinition;
 import com.osmb.api.script.SkillCategory;
-import com.osmb.api.trackers.experiencetracker.XPTracker;
 import com.osmb.api.visual.drawing.Canvas;
+import javafx.scene.Scene;
 import moths.data.MothData;
 import moths.tasks.CatchMoth;
 import moths.tasks.HandleBank;
+import moths.ui.UI;
 
 import java.awt.*;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @ScriptDefinition(
@@ -28,46 +30,43 @@ public class Moths extends Script {
         super(scriptCore);
     }
 
+    private UI ui;
     private final List<Task> tasks = new ArrayList<>();
     public static int mothsCaught = 0;
-    private static final Font ARIAL = new Font("Arial", Font.PLAIN, 14);
-    private XPTracker xpTracker;
-
-    @Override
-    public void onPaint(Canvas c) {
-        FontMetrics metrics = c.getFontMetrics(ARIAL);
-        int padding = 5;
-
-        List<String> lines = new ArrayList<>();
-        if (xpTracker != null) {
-            lines.add("Current XP: " + String.format("%,d", (long) xpTracker.getXp()));
-            lines.add("XP Gained: " + String.format("%,d", (long) xpTracker.getXpGained()));
-            lines.add("Xp per hour: " + String.format("%,d", (long) xpTracker.getXpPerHour(getStartTime())));
-            lines.add("Logs Chopped: " + String.format("%,d", mothsCaught));
-        }
-        // Calculate max width and total height
-        int maxWidth = 0;
-        for (String line : lines) {
-            int w = metrics.stringWidth(line);
-            if (w > maxWidth) maxWidth = w;
-        }
-        int totalHeight = metrics.getHeight() * lines.size();
-        int drawX = 10;
-        // Draw background rectangle
-        c.fillRect(drawX - padding, 40, maxWidth + padding * 2, totalHeight + padding * 2, Color.BLACK.getRGB(), 0.8);
-        c.drawRect(drawX - padding, 40, maxWidth + padding * 2, totalHeight + padding * 2, Color.GREEN.getRGB());
-        // Draw text lines
-        int drawY = 40;
-        for (String line : lines) {
-            int color = Color.WHITE.getRGB();
-            c.drawText(line, drawX, drawY += metrics.getHeight(), color, ARIAL);
-        }
-    }
+//
+//    @Override
+//    public void onPaint(Canvas c) {
+//        DecimalFormat f = new DecimalFormat("#,###");
+//        DecimalFormatSymbols s = new DecimalFormatSymbols();
+//        f.setDecimalFormatSymbols(s);
+//
+//        long now = System.currentTimeMillis();
+//        long elapsed = now - startTime;
+//        String runtime = formatTime(elapsed);
+//
+//        int mothsPerHour = elapsed > 0 ? (int) ((oresBought * 3600000L) / elapsed) : 0;
+//        int y = 40;
+//
+//        c.fillRect(5, y, 220, 110, Color.BLACK.getRGB(), 1);
+//        c.drawRect(5, y, 220, 110, Color.WHITE.getRGB());
+//
+//        c.drawText("Ores bought: " + f.format(oresBought), 10, y += 25, Color.WHITE.getRGB(), ARIEL);
+//        c.drawText("Ores/hr: " + f.format(mothsPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+//        c.drawText("Runtime: " + runtime, 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+//        c.drawText("Script version: 1.5", 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+//    }
 
     @Override
     public void onStart() {
-        tasks.add(new CatchMoth(this));
-        tasks.add(new HandleBank(this));
+        ui = new UI(this);
+        Scene scene = new Scene(ui);
+        scene.getStylesheets().add("style.css");
+        // Show the UI
+        getStageController().show(scene, "Moth Catcher Setup", false);
+        // Apply UI settings
+        log(Moths.class, "Selected Method: " + ui.selectedMethod);
+        log(Moths.class, "Selected Moth Type: " + Arrays.toString(ui.getMothItemIdsToCatch()));
+        log(Moths.class, "Restocking: " + ui.isRestocking);
     }
 
     @Override
