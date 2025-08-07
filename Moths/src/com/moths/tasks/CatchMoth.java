@@ -14,6 +14,7 @@ import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
 import moths.data.MothData;
+import moths.ui.UI;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,12 +22,13 @@ import java.util.Set;
 
 import static moths.Moths.mothsCaught;
 
-public class CatchMoth extends com.moths.tasks.Task {
+public class CatchMoth extends Task {
 
-    public CatchMoth(Script script) {
+    public CatchMoth(Script script, UI ui) {
         super(script);
+        this.ui = ui;
     }
-
+    private final UI ui;
     private static final SearchablePixel HIGHLIGHT_PIXEL = new SearchablePixel(-14155777, new SingleThresholdComparator(2), ColorModel.HSL);
     private final MothData mothType = MothData.MOONLIGHT_MOTH;
 

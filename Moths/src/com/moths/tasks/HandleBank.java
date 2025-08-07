@@ -14,19 +14,22 @@ import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
 import moths.data.MothData;
+import moths.ui.UI;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
-public class HandleBank extends com.moths.tasks.Task {
+public class HandleBank extends Task {
 
-    public HandleBank(Script script) {
+    public HandleBank(Script script, UI ui) {
         super(script);
+        this.ui = ui;
     }
 
-    MothData moth;
+    private UI ui;
+    private MothData moth;
     private static final SearchablePixel HIGHLIGHT_PIXEL = new SearchablePixel(-14221313, new SingleThresholdComparator(2), ColorModel.HSL);
     private static final boolean buyJars = false;
     private static final int amountToBuy = 100;

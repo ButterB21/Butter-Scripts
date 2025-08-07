@@ -1,6 +1,5 @@
 package moths;
 
-import com.moths.tasks.Task;
 import com.osmb.api.script.Script;
 import com.osmb.api.script.ScriptDefinition;
 import com.osmb.api.script.SkillCategory;
@@ -9,6 +8,7 @@ import javafx.scene.Scene;
 import moths.data.MothData;
 import moths.tasks.CatchMoth;
 import moths.tasks.HandleBank;
+import moths.tasks.Task;
 import moths.ui.UI;
 
 import java.awt.*;
@@ -67,8 +67,8 @@ public class Moths extends Script {
         log(Moths.class, "Selected Method: " + ui.selectedMethod);
         log(Moths.class, "Selected Moth Type: " + Arrays.toString(ui.getMothItemIdsToCatch()));
         log(Moths.class, "Restocking: " + ui.isRestocking);
-        tasks.add(new CatchMoth(this));
-        tasks.add(new HandleBank(this));
+        tasks.add(new CatchMoth(this, ui));
+        tasks.add(new HandleBank(this, ui));
     }
 
     @Override
