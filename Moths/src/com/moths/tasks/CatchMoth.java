@@ -2,7 +2,9 @@ package moths.tasks;
 
 import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemID;
+import com.osmb.api.location.area.Area;
 import com.osmb.api.location.area.impl.PolyArea;
+import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
@@ -30,7 +32,6 @@ public class CatchMoth extends Task {
     }
     private final UI ui;
     private static final SearchablePixel HIGHLIGHT_PIXEL = new SearchablePixel(-14155777, new SingleThresholdComparator(2), ColorModel.HSL);
-    private final MothData mothType = MothData.MOONLIGHT_MOTH;
 
     @Override
     public boolean activate() {
@@ -40,6 +41,7 @@ public class CatchMoth extends Task {
             return false;
         }
 
+        MothData mothType = MothData.fromUI(ui);
         if (mothType.getMothRegion() == myPosition.getRegionID()) {
             script.log(CatchMoth.class, "Activaging Catch Moth Task...");
             return true;
@@ -51,6 +53,8 @@ public class CatchMoth extends Task {
 
     @Override
     public void execute() {
+        MothData mothType = MothData.fromUI(ui);
+
         ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
         if (inventorySnapshot == null) {
             script.log(CatchMoth.class, "Cannot get inventory!");
@@ -80,10 +84,33 @@ public class CatchMoth extends Task {
 
                 script.submitHumanTask(() -> mothType.getMothRegion() != myPosition.getRegionID(), Utils.random(15000, 20000));
                 return;
+            } else if (mothType == MothData.BLACK_WARLOCK || mothType == MothData.RUBY_HARVEST) {
+                RectangleArea guildDoorArea = new RectangleArea(1245, 3716, 7, 6, 0);
+                walkToBankArea(guildDoorArea);
+
+                RSObject guildDoor = script.getObjectManager().getClosestObject("Door");
+                if (guildDoor == null) {
+                    script.log(CatchMoth.class, "Guild door object is null!");
+                    return;
+                }
+
+                if (!guildDoor.interact("Open")) {
+                    script.log(CatchMoth.class, "Failed to interact with guild door!");
+                    return;
+                }
+
+                WorldPosition myPosition = script.getWorldPosition();
+                if (myPosition == null) {
+                    script.log(CatchMoth.class, "Player position is null after climbing stairs!");
+                    return;
+                }
+
+                script.submitHumanTask(() -> !guildDoorArea.contains(myPosition), Utils.random(15000, 20000));
+                return;
             }
         }
 
-        script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars");
+        script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
         int currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
 
         WorldPosition myPosition = script.getWorldPosition();
@@ -134,7 +161,7 @@ public class CatchMoth extends Task {
             }
             script.log(CatchMoth.class, "Attempting to catch moth..." + postButterFlyJarCount + " jars");
             return false;
-        }, Utils.random(7000, 12000));
+        }, Utils.random(9000, 13000));
 
     }
 
@@ -149,6 +176,19 @@ public class CatchMoth extends Task {
         });
 
         script.getWalker().walkTo(mothWanderArea.getRandomPosition(), builder.build());
+    }
+
+    private void walkToBankArea(Area bankArea){
+        WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(3);
+        builder.breakCondition(() -> {
+            WorldPosition myPosition = script.getWorldPosition();
+            if (myPosition == null) {
+                return false;
+            }
+            return bankArea.contains(myPosition);
+        });
+
+        script.getWalker().walkTo(bankArea.getRandomPosition(), builder.build());
     }
 
     private List<WorldPosition> butterFlyPositions(PolyArea mothWanderArea) {

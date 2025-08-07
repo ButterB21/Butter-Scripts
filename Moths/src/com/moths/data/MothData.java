@@ -7,6 +7,7 @@ import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.visual.SearchablePixel;
 import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
+import moths.ui.UI;
 
 import java.util.List;
 
@@ -19,15 +20,25 @@ public enum MothData {
                     new SearchablePixel(-11035192, new SingleThresholdComparator(2), ColorModel.HSL),
                     new SearchablePixel(-11974309, new SingleThresholdComparator(2), ColorModel.HSL) },
             6291, 6191, new RectangleArea(1541, 3038, 9, 5, 0)),
+
     BLACK_WARLOCK(
             new PolyArea(List.of(
                     new WorldPosition(1239, 3748, 0),new WorldPosition(1237, 3747, 0),new WorldPosition(1232, 3746, 0),new WorldPosition(1232, 3740, 0),new WorldPosition(1237, 3739, 0),new WorldPosition(1241, 3739, 0),new WorldPosition(1241, 3746, 0),new WorldPosition(1243, 3746, 0),new WorldPosition(1243, 3744, 0))),
             new SearchablePixel[] {
-                    new SearchablePixel(-14286849, new SingleThresholdComparator(0), ColorModel.HSL),
-                    new SearchablePixel(-7332332, new SingleThresholdComparator(0), ColorModel.HSL),
-                    new SearchablePixel(-15330284, new SingleThresholdComparator(0), ColorModel.HSL)},
+                    new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),
+                    new SearchablePixel(-7332332, new SingleThresholdComparator(1), ColorModel.HSL),
+                    new SearchablePixel(-15330284, new SingleThresholdComparator(1), ColorModel.HSL)},
+            4922, 4922, new RectangleArea(1249, 3739, 6, 3, 0)),
+    RUBY_HARVEST(
+            new PolyArea(List.of(
+                    new WorldPosition(1239, 3748, 0),new WorldPosition(1237, 3747, 0),new WorldPosition(1232, 3746, 0),new WorldPosition(1232, 3740, 0),new WorldPosition(1237, 3739, 0),new WorldPosition(1241, 3739, 0),new WorldPosition(1241, 3746, 0),new WorldPosition(1243, 3746, 0),new WorldPosition(1243, 3744, 0))),
+            new SearchablePixel[] {
+                    new SearchablePixel(-7332332, new SingleThresholdComparator(1), ColorModel.HSL),
+                    new SearchablePixel(-11584468, new SingleThresholdComparator(1), ColorModel.HSL),
+                    new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),},
             4922, 4922, new RectangleArea(1249, 3739, 6, 3, 0)
-    );
+            );
+
 
     private final PolyArea mothArea;
     private final SearchablePixel[] mothClusterPixels;
@@ -58,5 +69,26 @@ public enum MothData {
 
     public Area getBankArea() {
         return bankArea;
+    }
+
+    // Static helper method to get MothData from UI selection
+    public static MothData fromUI(UI ui) {
+        if (ui.isCatchingMoonlightMoth()) {
+            return MOONLIGHT_MOTH;
+        } else if (ui.isCatchingBlackWarlock()) {
+            return BLACK_WARLOCK;
+        } else if (ui.isCatchingRubyHarvest()) {
+            return RUBY_HARVEST;
+        } else if (ui.isCatchingBothWarlockAndHarvest()) {
+            return BLACK_WARLOCK; //Black Warlock and Ruby Harvest are so similar in enum's, the user only needs to have highlights turned on for both to catch them.
+        }
+        // Add other moth types as you implement them
+        //  else if (ui.isCatchingSunlightMoth()) {
+        //     return SUNLIGHT_MOTH;
+        // } else if (ui.isCatchingRubyHarvest()) {
+        //     return RUBY_HARVEST;
+
+        // Default fallback
+        return MOONLIGHT_MOTH;
     }
 }
