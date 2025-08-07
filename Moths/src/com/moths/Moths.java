@@ -61,9 +61,8 @@ public class Moths extends Script {
         ui = new UI(this);
         Scene scene = new Scene(ui);
         scene.getStylesheets().add("style.css");
-        // Show the UI
         getStageController().show(scene, "Moth Catcher Setup", false);
-        // Apply UI settings
+
         log(Moths.class, "Selected Method: " + ui.selectedMethod);
         log(Moths.class, "Selected Moth Type: " + Arrays.toString(ui.getMothItemIdsToCatch()));
         log(Moths.class, "Restocking: " + ui.isRestocking);

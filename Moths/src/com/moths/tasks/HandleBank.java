@@ -31,7 +31,6 @@ public class HandleBank extends Task {
     private UI ui;
     private MothData moth;
     private static final SearchablePixel HIGHLIGHT_PIXEL = new SearchablePixel(-14221313, new SingleThresholdComparator(2), ColorModel.HSL);
-    private static final boolean buyJars = false;
     private static final int amountToBuy = 100;
 
     public static final String[] BANK_NAMES = {"Bank", "Chest", "Bank booth", "Bank chest", "Grand Exchange booth", "Bank counter", "Bank table", "Banker"};
@@ -60,12 +59,13 @@ public class HandleBank extends Task {
 
     @Override
     public boolean activate() {
-        moth = MothData.MOONLIGHT_MOTH; // Example moth, replace with actual logic to determine the moth
+        script.log(HandleBank.class, "Activating HandleBank task...");
         return true;
     }
 
     @Override
     public void execute() {
+        moth = MothData.fromUI(ui);
         WorldPosition myPosition = script.getWorldPosition();
         if (myPosition == null) {
             script.log(HandleBank.class, "Position is null!");
@@ -130,7 +130,7 @@ public class HandleBank extends Task {
 
         if (bankSnapShot.getAmount(ItemID.BUTTERFLY_JAR) <= 0) {
             //handle no jars in bank when region id is fixed...
-            if (buyJars){
+            if (ui.isRestocking()){
                 script.log(HandleBank.class, "Purchasing jars...");
             }
             script.log(HandleBank.class, "No butterfly jars in the bank! Stopping script.");

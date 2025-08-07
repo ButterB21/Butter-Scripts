@@ -43,7 +43,7 @@ public class CatchMoth extends Task {
 
         MothData mothType = MothData.fromUI(ui);
         if (mothType.getMothRegion() == myPosition.getRegionID()) {
-            script.log(CatchMoth.class, "Activaging Catch Moth Task...");
+            script.log(CatchMoth.class, "Activating Catch Moth Task...");
             return true;
         }
 
@@ -85,7 +85,7 @@ public class CatchMoth extends Task {
                 script.submitHumanTask(() -> mothType.getMothRegion() != myPosition.getRegionID(), Utils.random(15000, 20000));
                 return;
             } else if (mothType == MothData.BLACK_WARLOCK || mothType == MothData.RUBY_HARVEST) {
-                RectangleArea guildDoorArea = new RectangleArea(1245, 3716, 7, 6, 0);
+                RectangleArea guildDoorArea = new RectangleArea(1246, 3715, 5, 7, 0);
                 walkToBankArea(guildDoorArea);
 
                 RSObject guildDoor = script.getObjectManager().getClosestObject("Door");
@@ -179,6 +179,7 @@ public class CatchMoth extends Task {
     }
 
     private void walkToBankArea(Area bankArea){
+        script.log(CatchMoth.class, "Walking to the bank area...");
         WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(3);
         builder.breakCondition(() -> {
             WorldPosition myPosition = script.getWorldPosition();
