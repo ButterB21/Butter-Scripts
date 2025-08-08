@@ -20,7 +20,7 @@ import java.util.List;
 
 @ScriptDefinition(
     name = "Moths",
-    description = "A script for catching moths in the game.",
+    description = "A script for catching moths.",
     version = 1.0,
     author = "Butter",
     skillCategory = SkillCategory.HUNTER)
@@ -33,6 +33,9 @@ public class Moths extends Script {
     private UI ui;
     private final List<Task> tasks = new ArrayList<>();
     public static int mothsCaught = 0;
+    public static boolean shouldCatchMoths = true;
+    public static boolean shouldBank = true;
+
 //
 //    @Override
 //    public void onPaint(Canvas c) {
@@ -66,6 +69,9 @@ public class Moths extends Script {
         log(Moths.class, "Selected Method: " + ui.selectedMethod);
         log(Moths.class, "Selected Moth Type: " + Arrays.toString(ui.getMothItemIdsToCatch()));
         log(Moths.class, "Restocking: " + ui.isRestocking);
+
+        shouldCatchMoths = true; // create get/set later?
+        shouldBank = true;
         tasks.add(new CatchMoth(this, ui));
         tasks.add(new HandleBank(this, ui));
     }
@@ -84,7 +90,7 @@ public class Moths extends Script {
     @Override
     public int[] regionsToPrioritise() {
         // Define regions to prioritise
-        return new int[]{MothData.MOONLIGHT_MOTH.getMothRegion(), MothData.MOONLIGHT_MOTH.getBankRegion()}; // Example region ID
+        return new int[]{MothData.MOONLIGHT_MOTH.getMothRegion(), MothData.MOONLIGHT_MOTH.getBankRegion()};
     }
 
     @Override

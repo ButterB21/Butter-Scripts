@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static moths.Moths.shouldCatchMoths;
+import static moths.Moths.shouldBank;
+
 public class HandleBank extends Task {
 
     public HandleBank(Script script, UI ui) {
@@ -29,7 +32,7 @@ public class HandleBank extends Task {
     }
 
     private UI ui;
-    private MothData moth;
+    private MothData mothType;
     private static final SearchablePixel HIGHLIGHT_PIXEL = new SearchablePixel(-14221313, new SingleThresholdComparator(2), ColorModel.HSL);
     private static final int amountToBuy = 100;
 
@@ -59,25 +62,72 @@ public class HandleBank extends Task {
 
     @Override
     public boolean activate() {
-        script.log(HandleBank.class, "Activating HandleBank task...");
-        return true;
+        // Only activate when we're NOT supposed to be catching
+        if (shouldCatchMoths) {
+            return false;
+        }
+
+        WorldPosition myPosition = script.getWorldPosition();
+        if (myPosition == null) {
+            script.log(HandleBank.class, "Cannot get player position!");
+            return false;
+        }
+
+        //edge case: only a few available jars & next to bank - just rebank and get fresh invy (may only be an issue during script start.)
+        if (jarsAvailable() > 0) {
+            script.log(HandleBank.class, "Actually have jars available - switching back to catch mode");
+            shouldCatchMoths = false;
+            return false;
+        }
+
+        MothData mothType = MothData.fromUI(ui);
+        boolean inMothRegion = mothType.getMothRegion() == myPosition.getRegionID();
+        boolean inBankRegion = mothType.getBankRegion() == myPosition.getRegionID();
+
+        if (inMothRegion || inBankRegion) {
+            script.log(HandleBank.class, "Need banking and in appropriate region - activating HandleBank");
+            return true;
+        }
+
+        script.log(HandleBank.class, "Not in appropriate region for banking");
+        return false;
     }
 
     @Override
     public void execute() {
-        moth = MothData.fromUI(ui);
         WorldPosition myPosition = script.getWorldPosition();
         if (myPosition == null) {
-            script.log(HandleBank.class, "Position is null!");
+            script.log(HandleBank.class, "Cannot get player position!");
             return;
         }
 
-        if (myPosition.getRegionID() != moth.getBankRegion()) {
-            script.log(HandleBank.class, "Not in the bank region!");
-            return;
+        mothType = MothData.fromUI(ui);
+        if (jarsAvailable() <= 0) {
+            if (mothType == MothData.MOONLIGHT_MOTH) {
+                RSObject stairs = script.getObjectManager().getClosestObject("Stairs");
+                if (stairs == null) {
+                    script.log(CatchMoth.class, "Stairs obj is null!");
+                    return;
+                }
+
+                if (!stairs.interact("Climb-up")) {
+                    script.log(CatchMoth.class, "Failed to interact with stairs to go up!");
+                    return;
+                }
+
+                script.submitHumanTask(() -> {
+                    if (mothType.getMothRegion() != myPosition.getRegionID()) {
+                        shouldBank = false;
+                        script.log(HandleBank.class, "shouldBank set to false!");
+                    }
+                    script.log(HandleBank.class, "submitHumanTask for MoonlightMoths...");
+                    return !shouldBank;
+                }, Utils.random(15000, 20000));
+                return;
+            }
         }
 
-        walkToBank(moth.getBankArea());
+        walkToBank(mothType.getBankArea());
 
         if (!openBank()) {
             script.log(HandleBank.class, "Failed to open bank!");
@@ -89,9 +139,21 @@ public class HandleBank extends Task {
             return;
         }
 
-        returnToMothRegion(moth);
+        returnToMothRegion(mothType);
 
     }
+
+    private int jarsAvailable() {
+        ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
+
+        if (inventorySnapshot == null) {
+            script.log(HandleBank.class, "Inventory is null!");
+            return -1;
+        }
+
+        return inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+    }
+
 
     private boolean openBank() {
         script.log(HandleBank.class, "Opening bank...");
