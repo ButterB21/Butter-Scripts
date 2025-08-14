@@ -1,9 +1,11 @@
-### IntelliJ IDEA ###
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+# IntelliJ IDEA
+.idea/
+*.iws
+*.ipr
+*.ids
+*.orig
 
-### Eclipse ###
+# Eclipse
 .apt_generated
 .classpath
 .factorypath
@@ -12,28 +14,26 @@ out/
 .springBeans
 .sts4-cache
 bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
 
-### NetBeans ###
+# NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
 
-### VS Code ###
+# VS Code
 .vscode/
 
-### Mac OS ###
+# Mac OS
 .DS_Store
-/KaIZOWintertodtLooter/
-/Pickpocketer/
-/.idea/artifacts/
-# IntelliJ IDEA
-*.iws
-#*.jar
-*.ipr
-*.ids
-*.orig
+
+# Build output
 /out/
+
+# Artifacts
+/.idea/artifacts/
+
+# Java JARs (uncomment to ignore all JAR files globally)
+# *.jar
+
