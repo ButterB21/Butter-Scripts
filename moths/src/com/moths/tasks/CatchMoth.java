@@ -47,16 +47,17 @@ public class CatchMoth extends Task {
             return false;
         }
 
-        if (onlyFilledMothsLeft()) {
-            script.log(CatchMoth.class, "Only filled moths in inventory. Ending Catch moth task...");
-            catchMothTask = false;
-            bankTask = true;
-            return false;
-        }
+//        if (onlyFilledMothsLeft()) {
+//            script.log(CatchMoth.class, "Only filled moths in inventory. Ending Catch moth task...");
+//            catchMothTask = false;
+//            bankTask = true;
+//            return false;
+//        }
 
         if (!hasJarsAvailable()) {
             script.log(CatchMoth.class, "No jars available - switching to banking mode");
             catchMothTask = false;
+            bankTask = true;
             return false;
         }
 
@@ -134,7 +135,7 @@ public class CatchMoth extends Task {
             }
 
             int postButterFlyJarCount = postInvSnapshot.getAmount(ItemID.BUTTERFLY_JAR);
-            if (postButterFlyJarCount < currButterFlyJarCount && !script.getPixelAnalyzer().isPlayerAnimating(0.4)) {//check if player is no longer animating
+            if (postButterFlyJarCount < currButterFlyJarCount) {
                 script.log(CatchMoth.class, "Successfully caught a moth! Current jar count: " + postButterFlyJarCount + " jars");
                 mothsCaught++;
                 return true;

@@ -61,8 +61,7 @@ public class HandleBank extends Task {
         script.log(HandleBank.class, "Handle Bank task check...");
 
         if (script.getWidgetManager().getBank().isVisible()) {
-            script.getWidgetManager().getBank().close();
-            return false;
+            return true;
         }
 
         if (!bankTask) {
@@ -81,8 +80,9 @@ public class HandleBank extends Task {
         }
 
         if (jarsAvailable() > 0) {
-            script.log(HandleBank.class, "Actually have jars available - switching back to catch mode");
+            script.log(HandleBank.class, "Jars available - switching back to catch mode");
             catchMothTask = true;
+            bankTask = false;
             return false;
         }
 
@@ -96,7 +96,6 @@ public class HandleBank extends Task {
         }
 
         script.log(HandleBank.class, "Not in appropriate region for banking");
-        bankTask = false;
         return false;
     }
 
@@ -105,6 +104,11 @@ public class HandleBank extends Task {
         WorldPosition myPosition = script.getWorldPosition();
         if (myPosition == null) {
             script.log(HandleBank.class, "Cannot get player position!");
+            return;
+        }
+
+        if (script.getWidgetManager().getBank().isVisible()) {
+            handleBank();
             return;
         }
 
@@ -145,7 +149,7 @@ public class HandleBank extends Task {
                             return false;
                         }
                         return true;
-                    }, Utils.random(15000, 20000));
+                    }, Utils.random(16000, 22000));
 
                     if (!climbedStairs) {
                         script.log(HandleBank.class, "Failed to climb stairs.");
@@ -212,7 +216,6 @@ public class HandleBank extends Task {
             script.log(HandleBank.class, "Inventory is null!");
             return -1;
         }
-
         return inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
     }
 
@@ -289,6 +292,7 @@ public class HandleBank extends Task {
 
         script.log(HandleBank.class, "Withdrawing butterfly jars from bank...");
         script.getWidgetManager().getBank().withdraw(ItemID.BUTTERFLY_JAR, Integer.MAX_VALUE);
+        script.getWidgetManager().getBank().close();
         return true;
     }
 
