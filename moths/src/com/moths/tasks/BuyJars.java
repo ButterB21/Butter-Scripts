@@ -71,9 +71,9 @@ public class BuyJars extends Task {
                 if (!openShop()) {
                     script.log(BuyJars.class, "Shop still not visible!");
                     return;
-                } else {
-                    walkToArea(NPC_AREA);
                 }
+            } else {
+                walkToArea(NPC_AREA);
             }
         }
         script.log(BuyJars.class, "Jars bought so far: " + jarsBought);
