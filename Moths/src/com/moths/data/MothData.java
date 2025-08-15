@@ -40,23 +40,22 @@ public enum MothData {
             4922, 4922, new RectangleArea(1247, 3739, 7, 4, 0)
             ),
     SUNLIGHT_MOTH(
-            new PolyArea(List.of(
-                    new WorldPosition(1592, 3016, 0),new WorldPosition(1576, 3013, 0),new WorldPosition(1563, 3013, 0),new WorldPosition(1558, 3024, 0),new WorldPosition(1580, 3034, 0),new WorldPosition(1592, 3033, 0))),
+            new RectangleArea(1570, 3016, 18, 15, 0),
             new SearchablePixel[] {
-                    new SearchablePixel(-6532555, new SingleThresholdComparator(0), ColorModel.HSL),
-                    new SearchablePixel(-14286849, new SingleThresholdComparator(0), ColorModel.HSL),
-                    new SearchablePixel(-4874966, new SingleThresholdComparator(0), ColorModel.HSL),},
+                    new SearchablePixel(-6532555, new SingleThresholdComparator(1), ColorModel.HSL),
+                    new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),
+                    new SearchablePixel(-4874966, new SingleThresholdComparator(1), ColorModel.HSL),},
             6191, 6191, new RectangleArea(1541, 3038, 9, 5, 0)
                 );
 
 
-    private final PolyArea mothArea;
+    private final Area mothArea;
     private final SearchablePixel[] mothClusterPixels;
     private final int mothRegion;
     private final int bankRegion;
     private final Area bankArea;
 
-    MothData(PolyArea mothArea,SearchablePixel[] mothClusterPixels, int mothRegion, int bankRegion, Area bankArea) {
+    MothData(Area mothArea,SearchablePixel[] mothClusterPixels, int mothRegion, int bankRegion, Area bankArea) {
         this.mothArea = mothArea;
         this.mothClusterPixels = mothClusterPixels;
         this.mothRegion = mothRegion;
@@ -64,7 +63,7 @@ public enum MothData {
         this.bankArea = bankArea;
     }
 
-    public PolyArea getMothArea() {
+    public Area getMothArea() {
         return mothArea;
     }
     public SearchablePixel[] getMothClusterPixels() {

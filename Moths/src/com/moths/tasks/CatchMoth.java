@@ -157,7 +157,7 @@ public class CatchMoth extends Task {
         return jarCount > 0;
     }
 
-    private void walkToArea(PolyArea mothWanderArea) {
+    private void walkToArea(Area mothWanderArea) {
         WalkConfig.Builder builder = new WalkConfig.Builder();
         builder.breakCondition(() -> {
             WorldPosition myPosition = script.getWorldPosition();
@@ -170,7 +170,7 @@ public class CatchMoth extends Task {
         script.getWalker().walkTo(mothWanderArea.getRandomPosition(), builder.build());
     }
 
-    private List<WorldPosition> butterFlyPositions(PolyArea mothWanderArea) {
+    private List<WorldPosition> butterFlyPositions(Area mothWanderArea) {
         List<WorldPosition> searchArea = mothWanderArea.getAllWorldPositions();
 
         if (searchArea.isEmpty()) {
@@ -256,12 +256,5 @@ public class CatchMoth extends Task {
             }
         }
         return true;
-    }
-
-    private boolean onlyFilledMothsLeft() {
-        ItemGroupResult inv = script.getWidgetManager().getInventory().search(Set.of());
-        if (inv == null) return false;
-        int empty = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR)).getAmount(ItemID.BUTTERFLY_JAR);
-        return empty == 0 && inv.isFull();
     }
 }
