@@ -40,7 +40,7 @@ public class Moths extends Script {
     public static boolean activateRestocking = false;
 
     private String method;
-    private static final String MODE_CATCH_MOTHS = "Catch Moths";
+    private static final String MODE_CATCH_MOTHS = "Catch & Bank";
     private static final String MODE_ONLY_BUY_AND_BANK = "Only Buy & Bank Jars";
     private static final String MODE_ONLY_CATCH = "Only Catch (No bank)";
     private boolean isCatch;
@@ -68,9 +68,6 @@ public class Moths extends Script {
                 + "\nBank Task: " + bankTask
                 + "\nActivate Restocking: " + activateRestocking);
 
-//        catchMothTask = ui.getSelectedMethod().equalsIgnoreCase("Catch & Bank");
-//        bankTask = true;
-//        activateRestocking = ui.getSelectedMethod().equalsIgnoreCase("Only Buy & Bank Jars");
         tasks.add(new CatchMoth(this, ui));
         tasks.add(new HandleBank(this, ui));
         tasks.add(new BuyJars(this, ui));
@@ -111,8 +108,8 @@ public class Moths extends Script {
         int xpPerHour = elapsed >0 ? (int) ((mothsCaught * xpPerMoth * 3600000L) / elapsed) : 0;
         int y = 40;
 
-        c.fillRect(5, y, 220, 140, Color.BLACK.getRGB(), 0.8);
-        c.drawRect(5, y, 220, 140, Color.BLUE.getRGB());
+        c.fillRect(5, y, 220, isRestockOnly ? 80 : 140, Color.BLACK.getRGB(), 0.8);
+        c.drawRect(5, y, 220, isRestockOnly ? 80 : 140, Color.BLUE.getRGB());
 
         c.drawText("Method: " + method,10, y += 20, Color.WHITE.getRGB(), ARIEL);
         c.drawText("Script version: 2.0", 10, y += 20, Color.WHITE.getRGB(), ARIEL);

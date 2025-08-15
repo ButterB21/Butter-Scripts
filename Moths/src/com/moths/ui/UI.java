@@ -23,7 +23,7 @@ public class UI extends VBox {
     private boolean isCombinedSelected = false;
 
     // Variables for task usage
-    public String selectedMethod = "Catch Moths";
+    public String selectedMethod = "Catch & Bank";
     public int selectedMothItemId = ItemID.MOONLIGHT_MOTH;
     public boolean isRestocking = false; // Only used for "Catch Moths" with Moonlight/Sunlight
     public int restockAmount = 50; // Default and mandatory for "Only Buy & Bank Jars"
@@ -45,7 +45,7 @@ public class UI extends VBox {
     private static final String PREF_COMBINED = "catchBothWarlockAndHarvest";
 
     // Labels for methods to avoid typos
-    private static final String MODE_CATCH_MOTHS = "Catch Moths";
+    private static final String MODE_CATCH_MOTHS = "Catch & Bank";
     private static final String MODE_ONLY_BUY_AND_BANK = "Only Buy & Bank Jars";
     private static final String MODE_ONLY_CATCH = "Only Catch (No bank)";
 
@@ -344,7 +344,6 @@ public class UI extends VBox {
         prefs.putBoolean(PREF_COMBINED, catchBothWarlockAndHarvest);
     }
 
-    // Public getter methods for your main script
     public String getSelectedMethod() {
         return selectedMethod;
     }
@@ -390,7 +389,6 @@ public class UI extends VBox {
         }
     }
 
-    // Convenience
     public boolean isOnlyCatchMode() {
         return MODE_ONLY_CATCH.equals(selectedMethod);
     }

@@ -41,7 +41,7 @@ public class CatchMoth extends Task {
     }
     private boolean isCatchEnabledMode() {
         String m = ui.getSelectedMethod();
-        return "Catch Moths".equalsIgnoreCase(m) || isCatchOnlyMode();
+        return "Catch & Bank".equalsIgnoreCase(m) || isCatchOnlyMode();
     }
     @Override
     public boolean activate() {
@@ -138,7 +138,7 @@ public class CatchMoth extends Task {
                 if (!script.getPixelAnalyzer().isPlayerAnimating(0.6)) {
                     if (animatingTimer.timeElapsed() > animatingTimeout.get()) {
                         script.log(CatchMoth.class, "Animating timeout hit: " + animatingTimeout.get());
-                        animatingTimeout.set(Utils.random(500, 2500));
+                        animatingTimeout.set(Utils.random(150, 1500));
                         mothsCaught++;
                         return true;
                     }
