@@ -254,6 +254,9 @@ public class CatchMoth extends Task {
                 script.log(CatchMoth.class, "Not inside guild area. Walking to moth area...");
                 walkToArea(moth.getMothArea());
             }
+        } else {
+            // For Sunlight Moths
+            walkToArea(moth.getMothArea());
         }
         return true;
     }

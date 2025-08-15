@@ -90,12 +90,15 @@ public enum MothData {
             return RUBY_HARVEST;
         } else if (ui.isCatchingBothWarlockAndHarvest()) {
             return BLACK_WARLOCK; //Black Warlock and Ruby Harvest are so similar in enum's, the user only needs to have highlights turned on for both to catch them.
-        } else if (ui.isRestocking()) {
-            return MOONLIGHT_MOTH;
         } else if (ui.isCatchingSunlightMoth()) {
             return SUNLIGHT_MOTH;
         }
-        // Default fallback
+
+        // In the dedicated restock-only mode, fall back to Moonlight’s hub
+        if ("Only Buy & Bank Jars".equalsIgnoreCase(ui.getSelectedMethod())) {
+            return MOONLIGHT_MOTH;
+        }
+
         return MOONLIGHT_MOTH;
     }
 }

@@ -30,7 +30,7 @@ public class BuyJars extends Task {
             new SearchablePixel(-14286849, new SingleThresholdComparator(2), ColorModel.HSL),
     };
     private final UI ui;
-    private final static RectangleArea NPC_AREA = new RectangleArea(1560, 3058, 3, 4, 0);
+    private final static RectangleArea NPC_AREA = new RectangleArea(1559, 3055, 6, 7, 0);
     ShopInterface shopInterface = new ShopInterface(script);
 
     public BuyJars(Script script, UI ui) {
