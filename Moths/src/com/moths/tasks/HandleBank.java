@@ -60,6 +60,13 @@ public class HandleBank extends Task {
     public boolean activate() {
         script.log(HandleBank.class, "Handle Bank task check...");
 
+        // Never run HandleBank in Only Catch mode
+        if ("Only Catch (No bank)".equalsIgnoreCase(ui.getSelectedMethod())) {
+            bankTask = false;
+            script.log(HandleBank.class, "Only Catch mode - banking disabled.");
+            return false;
+        }
+
         if (script.getWidgetManager().getBank().isVisible()) {
             return true;
         }

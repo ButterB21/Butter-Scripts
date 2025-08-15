@@ -3,6 +3,7 @@ package moths;
 import com.osmb.api.script.Script;
 import com.osmb.api.script.ScriptDefinition;
 import com.osmb.api.script.SkillCategory;
+import com.osmb.api.visual.drawing.Canvas;
 import javafx.scene.Scene;
 import moths.data.MothData;
 import moths.tasks.BuyJars;
@@ -11,6 +12,9 @@ import moths.tasks.HandleBank;
 import moths.tasks.Task;
 import moths.ui.UI;
 
+import java.awt.*;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +39,12 @@ public class Moths extends Script {
     public static boolean bankTask = true;
     public static boolean activateRestocking = false;
 
+    private String method;
+    private static final String MODE_CATCH_MOTHS = "Catch Moths";
+    private static final String MODE_ONLY_BUY_AND_BANK = "Only Buy & Bank Jars";
+    private static final String MODE_ONLY_CATCH = "Only Catch (No bank)";
+
+    private static final Font ARIEL = new Font("Arial", Font.PLAIN, 14);
     @Override
     public void onStart() {
         ui = new UI(this);
@@ -42,9 +52,22 @@ public class Moths extends Script {
         scene.getStylesheets().add("style.css");
         getStageController().show(scene, "Moth Catcher Setup", false);
 
-        catchMothTask = ui.getSelectedMethod().equalsIgnoreCase("Catch & Bank");
-        bankTask = true;
-        activateRestocking = ui.getSelectedMethod().equalsIgnoreCase("Only Buy & Bank Jars");
+        method = ui.getSelectedMethod();
+        boolean isCatch = MODE_CATCH_MOTHS.equalsIgnoreCase(method) || MODE_ONLY_CATCH.equalsIgnoreCase(method);
+        boolean isRestockOnly = MODE_ONLY_BUY_AND_BANK.equalsIgnoreCase(method);
+        boolean isCatchOnly = MODE_ONLY_CATCH.equalsIgnoreCase(method);
+
+        catchMothTask = isCatch;
+        bankTask = !isCatchOnly; // never bank in Only Catch mode
+        activateRestocking = isRestockOnly; // BuyJars only in restock-only mode; HandleBank toggles it for Catch+Restock
+        log(CatchMoth.class, "Starting Moths script with method: " + method
+                + "\nCatch Moth Task: " + catchMothTask
+                + "\nBank Task: " + bankTask
+                + "\nActivate Restocking: " + activateRestocking);
+
+//        catchMothTask = ui.getSelectedMethod().equalsIgnoreCase("Catch & Bank");
+//        bankTask = true;
+//        activateRestocking = ui.getSelectedMethod().equalsIgnoreCase("Only Buy & Bank Jars");
         tasks.add(new CatchMoth(this, ui));
         tasks.add(new HandleBank(this, ui));
         tasks.add(new BuyJars(this, ui));
@@ -68,7 +91,29 @@ public class Moths extends Script {
 
     @Override
     public boolean promptBankTabDialogue() {
-        return true;
+        return !MODE_ONLY_CATCH.equalsIgnoreCase(ui.getSelectedMethod());
     }
 
+    @Override
+    public void onPaint(Canvas c) {
+        DecimalFormat f = new DecimalFormat("#,###");
+        DecimalFormatSymbols s = new DecimalFormatSymbols();
+        f.setDecimalFormatSymbols(s);
+
+        long now = System.currentTimeMillis();
+        long elapsed = now - startTime;
+
+        int mothsPerHour = elapsed > 0 ? (int) ((mothsCaught * 3600000L) / elapsed) : 0;
+        int xpPerHour = elapsed >0 ? (int) ((mothsCaught * 84 * 3600000L) / elapsed) : 0;
+        int y = 40;
+
+        c.fillRect(5, y, 220, 110, Color.BLACK.getRGB(), 0.8);
+        c.drawRect(5, y, 220, 110, Color.BLUE.getRGB());
+
+        c.drawText("Method: " + method,10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        c.drawText("Moths caught: " + f.format(mothsCaught), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        c.drawText("XP/Hr: " + f.format(xpPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        c.drawText("Moths/hr: " + f.format(mothsPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        c.drawText("Script version: 2.0", 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+    }
 }

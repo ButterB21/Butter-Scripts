@@ -10,6 +10,7 @@ import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
 import com.osmb.api.shape.Rectangle;
 import com.osmb.api.utils.Utils;
+import com.osmb.api.utils.timing.Timer;
 import com.osmb.api.visual.SearchablePixel;
 import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
@@ -20,6 +21,7 @@ import moths.ui.UI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static moths.Moths.*;
 
@@ -34,6 +36,13 @@ public class CatchMoth extends Task {
     private static final SearchablePixel HIGHLIGHT_PIXEL = new SearchablePixel(-14155777, new SingleThresholdComparator(2), ColorModel.HSL);
     private final PolyArea insideGuildArea = new PolyArea(List.of(new WorldPosition(1246, 3723, 0),new WorldPosition(1245, 3743, 0),new WorldPosition(1253, 3742, 0),new WorldPosition(1254, 3741, 0),new WorldPosition(1251, 3737, 0),new WorldPosition(1251, 3723, 0)));
 
+    private boolean isCatchOnlyMode() {
+        return "Only Catch (No bank)".equalsIgnoreCase(ui.getSelectedMethod());
+    }
+    private boolean isCatchEnabledMode() {
+        String m = ui.getSelectedMethod();
+        return "Catch Moths".equalsIgnoreCase(m) || isCatchOnlyMode();
+    }
     @Override
     public boolean activate() {
         if (!catchMothTask) {
@@ -41,20 +50,13 @@ public class CatchMoth extends Task {
             return false;
         }
 
-        if (!"Catch Moths".equals(ui.getSelectedMethod())) {
+        if (!isCatchEnabledMode()) {
             script.log(CatchMoth.class, "Not in catch moths mode");
             catchMothTask = false;
             return false;
         }
 
-//        if (onlyFilledMothsLeft()) {
-//            script.log(CatchMoth.class, "Only filled moths in inventory. Ending Catch moth task...");
-//            catchMothTask = false;
-//            bankTask = true;
-//            return false;
-//        }
-
-        if (!hasJarsAvailable()) {
+        if (!hasJarsAvailable() && !isCatchOnlyMode()) {
             script.log(CatchMoth.class, "No jars available - switching to banking mode");
             catchMothTask = false;
             bankTask = true;
@@ -69,10 +71,11 @@ public class CatchMoth extends Task {
     public void execute() {
         MothData mothType = MothData.fromUI(ui);
 
-        if (!hasJarsAvailable()) {
-            script.log(CatchMoth.class, "Invy is full!");
-            return;
-        }
+
+//        if (!hasJarsAvailable()) {
+//            script.log(CatchMoth.class, "Invy is full!");
+//            return;
+//        }
 
         ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
         script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
@@ -127,20 +130,34 @@ public class CatchMoth extends Task {
             return;
         }
 
+        AtomicInteger animatingTimeout = new AtomicInteger(Utils.random(500, 2500));
+        script.log(CatchMoth.class, "Initial Animating timeout: " + animatingTimeout.get());
+        Timer animatingTimer = new Timer();
         script.submitHumanTask(() -> {
-            ItemGroupResult postInvSnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
-            if (postInvSnapshot == null) {
-                script.log(CatchMoth.class, "Current inventory snapshot is null!");
-                return false;
+            if (isCatchOnlyMode()) {
+                if (!script.getPixelAnalyzer().isPlayerAnimating(0.6) && animatingTimer.timeElapsed() > animatingTimeout.get()) {
+                    script.log(CatchMoth.class, "Animating timeout hit: " + animatingTimeout.get());
+                    animatingTimeout.set(Utils.random(500, 2500));
+                    mothsCaught++;
+                    return true;
+                }
+                animatingTimer.reset();
+            } else {
+                ItemGroupResult postInvSnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
+                if (postInvSnapshot == null) {
+                    script.log(CatchMoth.class, "Current inventory snapshot is null!");
+                    return false;
+                }
+
+                int postButterFlyJarCount = postInvSnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+                if (postButterFlyJarCount < currButterFlyJarCount) {
+                    script.log(CatchMoth.class, "Successfully caught a moth! Current jar count: " + postButterFlyJarCount + " jars");
+                    mothsCaught++;
+                    return true;
+                }
+                script.log(CatchMoth.class, "Attempting to catch moth..." + postButterFlyJarCount + " jars");
             }
 
-            int postButterFlyJarCount = postInvSnapshot.getAmount(ItemID.BUTTERFLY_JAR);
-            if (postButterFlyJarCount < currButterFlyJarCount) {
-                script.log(CatchMoth.class, "Successfully caught a moth! Current jar count: " + postButterFlyJarCount + " jars");
-                mothsCaught++;
-                return true;
-            }
-            script.log(CatchMoth.class, "Attempting to catch moth..." + postButterFlyJarCount + " jars");
             return false;
         }, Utils.random(9000, 13000));
 

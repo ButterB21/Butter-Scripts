@@ -44,6 +44,11 @@ public class UI extends VBox {
     private static final String PREF_RESTOCK_AMOUNT = "restockAmount";
     private static final String PREF_COMBINED = "catchBothWarlockAndHarvest";
 
+    // Labels for methods to avoid typos
+    private static final String MODE_CATCH_MOTHS = "Catch Moths";
+    private static final String MODE_ONLY_BUY_AND_BANK = "Only Buy & Bank Jars";
+    private static final String MODE_ONLY_CATCH = "Only Catch (No bank)";
+
     public UI(ScriptCore core) {
         this.core = core;
         setStyle("-fx-background-color: #636E72; -fx-padding: 15; -fx-spacing: 15; -fx-alignment: center");
@@ -57,7 +62,7 @@ public class UI extends VBox {
         Label methodLabel = new Label("Select Method:");
         methodLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12;");
         methodComboBox = new ComboBox<>();
-        methodComboBox.getItems().addAll("Catch Moths", "Only Buy & Bank Jars");
+        methodComboBox.getItems().addAll(MODE_CATCH_MOTHS, MODE_ONLY_BUY_AND_BANK, MODE_ONLY_CATCH);
         methodComboBox.setPrefWidth(250);
         methodComboBox.setPromptText("Select Method");
 
@@ -93,10 +98,20 @@ public class UI extends VBox {
 
         // Method selection listener
         methodComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if ("Catch Moths".equals(newVal)) {
+            if (MODE_CATCH_MOTHS.equals(newVal)) {
                 mothTypeComboBox.setVisible(true);
+                mothTypeComboBox.setDisable(false);
                 updateOptionsVisibility();
-            } else {
+            } else if (MODE_ONLY_CATCH.equals(newVal)) {
+                // Show moth selection, no restocking controls
+                mothTypeComboBox.setVisible(true);
+                mothTypeComboBox.setDisable(false);
+                combinedMothsCheckBox.setVisible(false); // will be toggled by updateOptionsVisibility()
+                restockContainer.setVisible(false);
+                restockCheckBox.setVisible(false);
+                restockAmountSpinner.setDisable(true);
+                updateOptionsVisibility();
+            } else { // MODE_ONLY_BUY_AND_BANK
                 mothTypeComboBox.setVisible(false);
                 combinedMothsCheckBox.setVisible(false);
                 restockContainer.setVisible(true); // Show restock amount spinner for "Only Buy & Bank Jars"
@@ -134,7 +149,7 @@ public class UI extends VBox {
 
         // Restock amount spinner listener
         restockAmountSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (isRestocking || "Only Buy & Bank Jars".equals(selectedMethod)) {
+            if (isRestocking || MODE_ONLY_BUY_AND_BANK.equals(selectedMethod)) {
                 restockAmount = newVal; // Update restock amount for both cases
                 savePreferences();
             }
@@ -145,20 +160,29 @@ public class UI extends VBox {
         confirmButton.setPrefWidth(120);
         confirmButton.setStyle("-fx-font-size: 14; -fx-background-color: #4c5459; -fx-text-fill: white; -fx-background-radius: 5;");
         confirmButton.setOnAction(e -> {
-            selectedMethod = methodComboBox.getValue() != null ? methodComboBox.getValue() : "Catch Moths";
+            selectedMethod = methodComboBox.getValue() != null ? methodComboBox.getValue() : MODE_CATCH_MOTHS;
 
             if (isCombinedSelected) {
                 catchBothWarlockAndHarvest = true;
                 selectedMothItemId = ItemID.BLACK_WARLOCK; // Default to one of them
+            } else if (mothTypeComboBox.getValue() == ItemID.SUNLIGHT_MOTH) {
+                core.log("UI: Sunlight moth selected");
+                selectedMothItemId = ItemID.SUNLIGHT_MOTH;
             } else {
-                catchBothWarlockAndHarvest = false;
+                core.log("UI: Moonlgiht moth selected");
                 selectedMothItemId = mothTypeComboBox.getValue() != null ? mothTypeComboBox.getValue() : ItemID.MOONLIGHT_MOTH;
+            }
+            // If not combined, ensure flag is off
+            if (!isCombinedSelected) {
+                catchBothWarlockAndHarvest = false;
             }
 
             // Set restocking based on method
-            if ("Only Buy & Bank Jars".equals(selectedMethod)) {
+            if (MODE_ONLY_BUY_AND_BANK.equals(selectedMethod)) {
                 isRestocking = true; // Mandatory for this method
                 restockAmount = restockAmountSpinner.getValue(); // Use spinner value
+            } else if (MODE_ONLY_CATCH.equals(selectedMethod)) {
+                isRestocking = false; // No restocking in Only Catch
             } else {
                 isRestocking = restockCheckBox.isSelected() && isRestockingAllowed();
                 if (isRestocking) {
@@ -187,7 +211,7 @@ public class UI extends VBox {
             restockCheckBox.setVisible(false);
             restockAmountSpinner.setDisable(true);
             restockAmountSpinner.getValueFactory().setValue(50); // Reset to default
-            selectedMethod = "Catch Moths";
+            selectedMethod = MODE_CATCH_MOTHS;
             selectedMothItemId = ItemID.MOONLIGHT_MOTH;
             isRestocking = false;
             restockAmount = 50;
@@ -212,7 +236,7 @@ public class UI extends VBox {
         String method = methodComboBox.getValue();
         Integer mothType = mothTypeComboBox.getValue();
 
-        if ("Catch Moths".equals(method)) {
+        if (MODE_CATCH_MOTHS.equals(method) || MODE_ONLY_CATCH.equals(method)) {
             // Show combined option only when Black Warlock or Ruby Harvest is selected
             boolean showCombined = (mothType != null) &&
                     (mothType == ItemID.BLACK_WARLOCK || mothType == ItemID.RUBY_HARVEST);
@@ -233,15 +257,20 @@ public class UI extends VBox {
 
     private void updateRestockVisibility() {
         String method = methodComboBox.getValue();
-        boolean showRestock = "Catch Moths".equals(method) && isRestockingAllowed() || "Only Buy & Bank Jars".equals(method);
+        boolean showRestock = (MODE_CATCH_MOTHS.equals(method) && isRestockingAllowed())
+                || MODE_ONLY_BUY_AND_BANK.equals(method);
         restockContainer.setVisible(showRestock);
 
-        if ("Catch Moths".equals(method)) {
+        if (MODE_CATCH_MOTHS.equals(method)) {
             restockCheckBox.setVisible(isRestockingAllowed());
             restockAmountSpinner.setDisable(!restockCheckBox.isSelected() || !isRestockingAllowed());
-        } else {
+        } else if (MODE_ONLY_BUY_AND_BANK.equals(method)) {
             restockCheckBox.setVisible(false); // Hide checkbox for "Only Buy & Bank Jars"
             restockAmountSpinner.setDisable(false); // Enable spinner directly
+        } else {
+            // Only Catch (No bank)
+            restockCheckBox.setVisible(false);
+            restockAmountSpinner.setDisable(true);
         }
     }
 
@@ -259,11 +288,11 @@ public class UI extends VBox {
         Preferences prefs = Preferences.userNodeForPackage(UI.class);
 
         // Load method
-        String savedMethod = prefs.get(PREF_METHOD, "Catch Moths");
+        String savedMethod = prefs.get(PREF_METHOD, MODE_CATCH_MOTHS);
         methodComboBox.getSelectionModel().select(savedMethod);
         selectedMethod = savedMethod;
 
-        if ("Catch Moths".equals(savedMethod)) {
+        if (MODE_CATCH_MOTHS.equals(savedMethod) || MODE_ONLY_CATCH.equals(savedMethod)) {
             mothTypeComboBox.setVisible(true);
         } else {
             mothTypeComboBox.setVisible(false);
@@ -350,5 +379,10 @@ public class UI extends VBox {
         } else {
             return new int[]{selectedMothItemId};
         }
+    }
+
+    // Convenience
+    public boolean isOnlyCatchMode() {
+        return MODE_ONLY_CATCH.equals(selectedMethod);
     }
 }
