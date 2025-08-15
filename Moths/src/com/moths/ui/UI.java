@@ -112,6 +112,11 @@ public class UI extends VBox {
                 restockAmountSpinner.setDisable(true);
                 updateOptionsVisibility();
             } else { // MODE_ONLY_BUY_AND_BANK
+                // Clear combined selection state to avoid stale flags influencing logic
+                isCombinedSelected = false;
+                combinedMothsCheckBox.setSelected(false);
+                catchBothWarlockAndHarvest = false;
+
                 mothTypeComboBox.setVisible(false);
                 combinedMothsCheckBox.setVisible(false);
                 restockContainer.setVisible(true); // Show restock amount spinner for "Only Buy & Bank Jars"
@@ -162,7 +167,10 @@ public class UI extends VBox {
         confirmButton.setOnAction(e -> {
             selectedMethod = methodComboBox.getValue() != null ? methodComboBox.getValue() : MODE_CATCH_MOTHS;
 
-            if (isCombinedSelected) {
+            if (MODE_ONLY_BUY_AND_BANK.equals(selectedMethod)) {
+                // In buy & bank mode, combined selection should not influence behavior
+                catchBothWarlockAndHarvest = false;
+            } else if (isCombinedSelected) {
                 catchBothWarlockAndHarvest = true;
                 selectedMothItemId = ItemID.BLACK_WARLOCK; // Default to one of them
             } else if (mothTypeComboBox.getValue() == ItemID.SUNLIGHT_MOTH) {
@@ -172,8 +180,9 @@ public class UI extends VBox {
                 core.log("UI: Moonlgiht moth selected");
                 selectedMothItemId = mothTypeComboBox.getValue() != null ? mothTypeComboBox.getValue() : ItemID.MOONLIGHT_MOTH;
             }
+
             // If not combined, ensure flag is off
-            if (!isCombinedSelected) {
+            if (!isCombinedSelected || MODE_ONLY_BUY_AND_BANK.equals(selectedMethod)) {
                 catchBothWarlockAndHarvest = false;
             }
 

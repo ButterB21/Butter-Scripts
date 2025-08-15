@@ -19,7 +19,7 @@ public enum MothData {
                     new SearchablePixel(-14221313, new SingleThresholdComparator(2), ColorModel.HSL),
                     new SearchablePixel(-11035192, new SingleThresholdComparator(2), ColorModel.HSL),
                     new SearchablePixel(-11974309, new SingleThresholdComparator(2), ColorModel.HSL) },
-            6291, 6191, new RectangleArea(1541, 3038, 9, 5, 0)),
+            6291, 6191, new RectangleArea(1541, 3038, 9, 5, 0), 84),
 
     BLACK_WARLOCK(
             new PolyArea(List.of(
@@ -28,7 +28,7 @@ public enum MothData {
                     new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-7332332, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-15330284, new SingleThresholdComparator(1), ColorModel.HSL)},
-            4922, 4922, new RectangleArea(1247, 3739, 7, 4, 0)),
+            4922, 4922, new RectangleArea(1247, 3739, 7, 4, 0), 54),
     RUBY_HARVEST(
             new PolyArea(List.of(
                     new WorldPosition(1239, 3748, 0),new WorldPosition(1243, 3745, 0),new WorldPosition(1243, 3744, 0),new WorldPosition(1241, 3740, 0),new WorldPosition(1224, 3740, 0),new WorldPosition(1224, 3743, 0),new WorldPosition(1232, 3744, 0),new WorldPosition(1232, 3746, 0))),
@@ -37,7 +37,7 @@ public enum MothData {
                     new SearchablePixel(-7332332, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-11584468, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),},
-            4922, 4922, new RectangleArea(1247, 3739, 7, 4, 0)
+            4922, 4922, new RectangleArea(1247, 3739, 7, 4, 0), 24
             ),
     SUNLIGHT_MOTH(
             new RectangleArea(1570, 3016, 18, 15, 0),
@@ -45,7 +45,7 @@ public enum MothData {
                     new SearchablePixel(-6532555, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-4874966, new SingleThresholdComparator(1), ColorModel.HSL),},
-            6191, 6191, new RectangleArea(1541, 3038, 9, 5, 0)
+            6191, 6191, new RectangleArea(1541, 3038, 9, 5, 0), 74
                 );
 
 
@@ -54,13 +54,15 @@ public enum MothData {
     private final int mothRegion;
     private final int bankRegion;
     private final Area bankArea;
+    private final int xpPerMoth;
 
-    MothData(Area mothArea,SearchablePixel[] mothClusterPixels, int mothRegion, int bankRegion, Area bankArea) {
+    MothData(Area mothArea,SearchablePixel[] mothClusterPixels, int mothRegion, int bankRegion, Area bankArea, int xpPerMoth) {
         this.mothArea = mothArea;
         this.mothClusterPixels = mothClusterPixels;
         this.mothRegion = mothRegion;
         this.bankRegion = bankRegion;
         this.bankArea = bankArea;
+        this.xpPerMoth = xpPerMoth;
     }
 
     public Area getMothArea() {
@@ -79,6 +81,8 @@ public enum MothData {
     public Area getBankArea() {
         return bankArea;
     }
+
+    public int getXpPerMoth() {return xpPerMoth; }
 
     // Static helper method to get MothData from UI selection
     public static MothData fromUI(UI ui) {

@@ -135,11 +135,14 @@ public class CatchMoth extends Task {
         Timer animatingTimer = new Timer();
         script.submitHumanTask(() -> {
             if (isCatchOnlyMode()) {
-                if (!script.getPixelAnalyzer().isPlayerAnimating(0.6) && animatingTimer.timeElapsed() > animatingTimeout.get()) {
-                    script.log(CatchMoth.class, "Animating timeout hit: " + animatingTimeout.get());
-                    animatingTimeout.set(Utils.random(500, 2500));
-                    mothsCaught++;
-                    return true;
+                if (!script.getPixelAnalyzer().isPlayerAnimating(0.6)) {
+                    if (animatingTimer.timeElapsed() > animatingTimeout.get()) {
+                        script.log(CatchMoth.class, "Animating timeout hit: " + animatingTimeout.get());
+                        animatingTimeout.set(Utils.random(500, 2500));
+                        mothsCaught++;
+                        return true;
+                    }
+                    return false;
                 }
                 animatingTimer.reset();
             } else {

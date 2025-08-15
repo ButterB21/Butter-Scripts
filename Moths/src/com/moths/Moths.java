@@ -43,6 +43,9 @@ public class Moths extends Script {
     private static final String MODE_CATCH_MOTHS = "Catch Moths";
     private static final String MODE_ONLY_BUY_AND_BANK = "Only Buy & Bank Jars";
     private static final String MODE_ONLY_CATCH = "Only Catch (No bank)";
+    private boolean isCatch;
+    private boolean isRestockOnly;
+    private boolean isCatchOnly;
 
     private static final Font ARIEL = new Font("Arial", Font.PLAIN, 14);
     @Override
@@ -53,9 +56,9 @@ public class Moths extends Script {
         getStageController().show(scene, "Moth Catcher Setup", false);
 
         method = ui.getSelectedMethod();
-        boolean isCatch = MODE_CATCH_MOTHS.equalsIgnoreCase(method) || MODE_ONLY_CATCH.equalsIgnoreCase(method);
-        boolean isRestockOnly = MODE_ONLY_BUY_AND_BANK.equalsIgnoreCase(method);
-        boolean isCatchOnly = MODE_ONLY_CATCH.equalsIgnoreCase(method);
+        isCatch = MODE_CATCH_MOTHS.equalsIgnoreCase(method) || MODE_ONLY_CATCH.equalsIgnoreCase(method);
+        isRestockOnly = MODE_ONLY_BUY_AND_BANK.equalsIgnoreCase(method);
+        isCatchOnly = MODE_ONLY_CATCH.equalsIgnoreCase(method);
 
         catchMothTask = isCatch;
         bankTask = !isCatchOnly; // never bank in Only Catch mode
@@ -103,17 +106,23 @@ public class Moths extends Script {
         long now = System.currentTimeMillis();
         long elapsed = now - startTime;
 
+        int xpPerMoth = MothData.fromUI(ui).getXpPerMoth();
         int mothsPerHour = elapsed > 0 ? (int) ((mothsCaught * 3600000L) / elapsed) : 0;
-        int xpPerHour = elapsed >0 ? (int) ((mothsCaught * 84 * 3600000L) / elapsed) : 0;
+        int xpPerHour = elapsed >0 ? (int) ((mothsCaught * xpPerMoth * 3600000L) / elapsed) : 0;
         int y = 40;
 
-        c.fillRect(5, y, 220, 110, Color.BLACK.getRGB(), 0.8);
-        c.drawRect(5, y, 220, 110, Color.BLUE.getRGB());
+        c.fillRect(5, y, 220, 140, Color.BLACK.getRGB(), 0.8);
+        c.drawRect(5, y, 220, 140, Color.BLUE.getRGB());
 
         c.drawText("Method: " + method,10, y += 20, Color.WHITE.getRGB(), ARIEL);
-        c.drawText("Moths caught: " + f.format(mothsCaught), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
-        c.drawText("XP/Hr: " + f.format(xpPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
-        c.drawText("Moths/hr: " + f.format(mothsPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
         c.drawText("Script version: 2.0", 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        if (isRestockOnly) {
+            c.drawText("Jars Bought: " + jarsBought,10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        } else {
+            c.drawText("Moths caught: " + f.format(mothsCaught), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+            c.drawText("XP/Hr: " + f.format(xpPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+            c.drawText("Total XP: " + f.format(mothsCaught * xpPerMoth), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+            c.drawText("Moths/hr: " + f.format(mothsPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        }
     }
 }
