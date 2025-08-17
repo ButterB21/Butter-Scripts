@@ -9,12 +9,14 @@ import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
 import com.osmb.api.shape.Rectangle;
+import com.osmb.api.utils.UIResultList;
 import com.osmb.api.utils.Utils;
 import com.osmb.api.utils.timing.Timer;
 import com.osmb.api.visual.SearchablePixel;
 import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
+import com.osmb.api.world.World;
 import moths.data.MothData;
 import moths.ui.UI;
 
@@ -185,11 +187,25 @@ public class CatchMoth extends Task {
 
     private List<WorldPosition> butterFlyPositions(Area mothWanderArea) {
         List<WorldPosition> searchArea = mothWanderArea.getAllWorldPositions();
+        UIResultList<WorldPosition> playerPositions = script.getWidgetManager().getMinimap().getPlayerPositions();
 
         if (searchArea.isEmpty()) {
             script.log(CatchMoth.class, "No surrounding positions found in the search area.");
             return null;
         }
+
+        if (playerPositions.isFound()) {
+            script.log(CatchMoth.class, "Player position found!");
+
+            if (playerPositions.asList().stream().anyMatch(playerPos -> searchArea.contains(playerPos))) {
+                script.log(CatchMoth.class, "Player found in moth area! Hopping worlds...");
+                script.getProfileManager().forceHop();
+                return null;
+            }
+            script.log(CatchMoth.class, "Player(s) found, but none in moth area.");
+        }
+
+
 
         List<WorldPosition> validMothPositions = new ArrayList<>();
         searchArea.forEach(position -> {
@@ -198,6 +214,7 @@ public class CatchMoth extends Task {
                 script.log(CatchMoth.class, "Polygon inside the search area is null.");
                 return;
             }
+
 
             if (script.getWorldPosition().distanceTo(position) > 20) {
                 script.log(CatchMoth.class, "Moth is too far away, looking for a closer option...");
