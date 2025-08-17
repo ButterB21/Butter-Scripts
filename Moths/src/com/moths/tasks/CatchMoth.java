@@ -70,13 +70,6 @@ public class CatchMoth extends Task {
     @Override
     public void execute() {
         MothData mothType = MothData.fromUI(ui);
-
-
-//        if (!hasJarsAvailable()) {
-//            script.log(CatchMoth.class, "Invy is full!");
-//            return;
-//        }
-
         ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
         script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
         int currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
@@ -130,7 +123,7 @@ public class CatchMoth extends Task {
             return;
         }
 
-        AtomicInteger animatingTimeout = new AtomicInteger(Utils.random(500, 2500));
+        AtomicInteger animatingTimeout = new AtomicInteger(Utils.random(500));
         script.log(CatchMoth.class, "Initial Animating timeout: " + animatingTimeout.get());
         Timer animatingTimer = new Timer();
         script.submitHumanTask(() -> {
@@ -138,7 +131,7 @@ public class CatchMoth extends Task {
                 if (!script.getPixelAnalyzer().isPlayerAnimating(0.6)) {
                     if (animatingTimer.timeElapsed() > animatingTimeout.get()) {
                         script.log(CatchMoth.class, "Animating timeout hit: " + animatingTimeout.get());
-                        animatingTimeout.set(Utils.random(150, 1500));
+                        animatingTimeout.set(Utils.random(500));
                         mothsCaught++;
                         return true;
                     }
