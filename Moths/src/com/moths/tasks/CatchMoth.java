@@ -73,6 +73,11 @@ public class CatchMoth extends Task {
     public void execute() {
         MothData mothType = MothData.fromUI(ui);
         ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
+        if (inventorySnapshot == null) {
+            script.log(CatchMoth.class, "Cannot get inventory snapshot");
+            return;
+        }
+
         script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
         int currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
 
