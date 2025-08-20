@@ -135,7 +135,7 @@ public class CatchMoth extends Task {
         Timer animatingTimer = new Timer();
         script.submitHumanTask(() -> {
             if (isCatchOnlyMode()) {
-                if (!script.getPixelAnalyzer().isPlayerAnimating(0.6)) {
+                if (!script.getPixelAnalyzer().isPlayerAnimating(0.5)) {
                     if (animatingTimer.timeElapsed() > animatingTimeout.get()) {
                         script.log(CatchMoth.class, "Animating timeout hit: " + animatingTimeout.get());
                         animatingTimeout.set(Utils.random(500));
