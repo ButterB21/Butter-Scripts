@@ -119,7 +119,7 @@ public class CatchMoth extends Task {
             return;
         }
 
-        Rectangle mothBounds = script.getUtils().getHighlightBounds(poly, mothType.getMothClusterPixels());
+        Rectangle mothBounds = script.getPixelAnalyzer().getHighlightBounds(poly, mothType.getMothClusterPixels());
         if (mothBounds == null) {
             script.log(CatchMoth.class, "No highlight bounds found for moth at position: " + closestMoth);
             return;
@@ -226,7 +226,7 @@ public class CatchMoth extends Task {
                 return;
             }
 
-            if (script.getUtils().getHighlightBounds(poly, HIGHLIGHT_PIXEL) != null) {
+            if (script.getPixelAnalyzer().getHighlightBounds(poly, HIGHLIGHT_PIXEL) != null) {
                 script.log(CatchMoth.class, "Highlighted Moth found.");
                 validMothPositions.add(position);
             }
