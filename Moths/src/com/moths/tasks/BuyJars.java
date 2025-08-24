@@ -106,7 +106,7 @@ public class BuyJars extends Task {
                 continue;
             }
 
-            Rectangle validBounds = script.getUtils().getHighlightBounds(poly, NPC_PIXEL_CLUSTER);
+            Rectangle validBounds = script.getPixelAnalyzer().getHighlightBounds(poly, NPC_PIXEL_CLUSTER);
             if (validBounds == null) {
                 script.log(BuyJars.class, "npc position is null, checking next position...");
                 continue;
