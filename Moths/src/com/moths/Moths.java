@@ -59,6 +59,8 @@ public class Moths extends Script {
         scene.getStylesheets().add("style.css");
         getStageController().show(scene, "Moth Catcher Setup", false);
 
+        new Thread(() -> moths.util.UpdaterA.checkForUpdates(this, scriptVersion), "moths-updater").start();
+
         method = ui.getSelectedMethod();
         isCatch = MODE_CATCH_MOTHS.equalsIgnoreCase(method) || MODE_ONLY_CATCH.equalsIgnoreCase(method);
         isRestockOnly = MODE_ONLY_BUY_AND_BANK.equalsIgnoreCase(method);
@@ -128,7 +130,7 @@ public class Moths extends Script {
     }
 
     private void checkForUpdates() {
-        String latest = getLatestVersion("https://github.com/ButterB21/Butter-Scripts/blob/1403d61b31476384836f5442302e80d02a81cd76/Moths/jar/Moths.jar");
+        String latest = getLatestVersion("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/main/Moths/jar/Moths.jar");
 
         if (latest == null) {
             log("VERSION", "⚠ Could not fetch latest version info.");
@@ -140,11 +142,11 @@ public class Moths extends Script {
             try {
                 File dir = new File(System.getProperty("user.home") + File.separator + ".osmb" + File.separator + "Scripts");
 
-                File[] old = dir.listFiles((d, n) -> n.equals("dCamTorumMiner.jar") || n.startsWith("dCamTorumMiner-"));
+                File[] old = dir.listFiles((d, n) -> n.equals("Moths.jar") || n.startsWith("Moths-"));
                 if (old != null) for (File f : old) if (f.delete()) log("UPDATE", "🗑 Deleted old: " + f.getName());
 
-                File out = new File(dir, "dCamTorumMiner-" + latest + ".jar");
-                URL url = new URL("https://github.com/ButterB21/Butter-Scripts/blob/1403d61b31476384836f5442302e80d02a81cd76/Moths/jar/Moths.jar");
+                File out = new File(dir, "Moths-" + latest + ".jar");
+                URL url = new URL("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/main/Moths/jar/Moths.jar");
                 try (InputStream in = url.openStream(); FileOutputStream fos = new FileOutputStream(out)) {
                     byte[] buf = new byte[4096];
                     int n;

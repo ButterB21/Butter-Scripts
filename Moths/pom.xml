@@ -1,0 +1,19 @@
+<build>
+    <plugins>
+        <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+                <archive>
+                    <manifest>
+                        <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                    </manifest>
+                    <manifestEntries>
+                        <Implementation-Title>Moths</Implementation-Title>
+                        <!-- Optional: explicitly set version -->
+                        <Implementation-Version>${project.version}</Implementation-Version>
+                    </manifestEntries>
+                </archive>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>

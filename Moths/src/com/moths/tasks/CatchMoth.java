@@ -5,6 +5,7 @@ import com.osmb.api.item.ItemID;
 import com.osmb.api.location.area.Area;
 import com.osmb.api.location.area.impl.PolyArea;
 import com.osmb.api.location.position.types.WorldPosition;
+import com.osmb.api.profile.WorldProvider;
 import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
