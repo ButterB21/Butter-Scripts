@@ -29,6 +29,13 @@ public class UI extends VBox {
     public int restockAmount = 50; // Default and mandatory for "Only Buy & Bank Jars"
     public boolean catchBothWarlockAndHarvest = false;
 
+    // Bank preference (UI-only enforcement when "Only Buy & Bank Jars" is selected)
+    private static final String PREF_BANK_LOCATION = "preferredBank";
+    private static final String BANK_HUNTERS_GUILD = "HuntersGuild";
+    private static final String BANK_FARMING_GUILD = "FarmingGuild";
+    private static final String BANK_NEAREST = "Nearest";
+    public String preferredBank = BANK_NEAREST;
+
     // Define your moth ItemIDs array
     private static final int[] MOTH_TYPE_IDS = new int[] {
             ItemID.MOONLIGHT_MOTH,
@@ -123,6 +130,10 @@ public class UI extends VBox {
                 restockCheckBox.setVisible(false); // Hide checkbox
                 restockAmountSpinner.setDisable(false); // Enable spinner directly
             }
+
+            // Enforce bank policy on method change
+            applyBankPolicyForCurrentMethod();
+
             updateRestockVisibility();
         });
 
@@ -168,6 +179,14 @@ public class UI extends VBox {
             selectedMethod = methodComboBox.getValue() != null ? methodComboBox.getValue() : MODE_CATCH_MOTHS;
 
             if (MODE_ONLY_BUY_AND_BANK.equals(selectedMethod)) {
+                // Force Hunters Guild bank in this mode
+                preferredBank = BANK_HUNTERS_GUILD;
+                core.log("UI: Forcing bank to Hunter's Guild for 'Only Buy & Bank Jars'.");
+                // Best-effort clearing of any stale cached bank preference keys some runtimes use
+                Preferences prefs = Preferences.userNodeForPackage(UI.class);
+                prefs.put(PREF_BANK_LOCATION, preferredBank);
+                prefs.remove("lastBank");
+                prefs.remove("selectedBank");
                 // In buy & bank mode, combined selection should not influence behavior
                 catchBothWarlockAndHarvest = false;
             } else if (isCombinedSelected) {
@@ -226,6 +245,7 @@ public class UI extends VBox {
             restockAmount = 50;
             catchBothWarlockAndHarvest = false;
             isCombinedSelected = false;
+            preferredBank = BANK_NEAREST; // Reset bank preference on full reset
             savePreferences();
         });
 
@@ -239,6 +259,9 @@ public class UI extends VBox {
 
         // Load saved preferences
         loadPreferences();
+
+        // Enforce bank policy once after loading persisted state
+        applyBankPolicyForCurrentMethod();
     }
 
     private void updateOptionsVisibility() {
@@ -331,6 +354,16 @@ public class UI extends VBox {
         restockAmount = prefs.getInt(PREF_RESTOCK_AMOUNT, 50);
         restockAmountSpinner.getValueFactory().setValue(restockAmount);
 
+        // Load preferred bank (default NEAREST), but override to Hunters Guild if current mode requires it
+        preferredBank = prefs.get(PREF_BANK_LOCATION, BANK_NEAREST);
+        if (MODE_ONLY_BUY_AND_BANK.equals(savedMethod)) {
+            preferredBank = BANK_HUNTERS_GUILD;
+            prefs.put(PREF_BANK_LOCATION, preferredBank);
+            // Clear potential stale cache keys some runtimes use
+            prefs.remove("lastBank");
+            prefs.remove("selectedBank");
+        }
+
         // Update visibility after loading
         updateOptionsVisibility();
     }
@@ -342,6 +375,31 @@ public class UI extends VBox {
         prefs.putBoolean(PREF_RESTOCK, isRestocking); // Only saved for "Catch Moths"
         prefs.putInt(PREF_RESTOCK_AMOUNT, restockAmount);
         prefs.putBoolean(PREF_COMBINED, catchBothWarlockAndHarvest);
+        // Persist preferred bank; force Hunters Guild if the current mode requires it
+        prefs.put(PREF_BANK_LOCATION, getPreferredBank());
+    }
+
+    // Enforce bank consistency whenever the mode changes or after loading prefs
+    private void applyBankPolicyForCurrentMethod() {
+        Preferences prefs = Preferences.userNodeForPackage(UI.class);
+        String method = methodComboBox.getValue();
+        if (MODE_ONLY_BUY_AND_BANK.equals(method)) {
+            preferredBank = BANK_HUNTERS_GUILD;
+            prefs.put(PREF_BANK_LOCATION, preferredBank);
+            // Clear potential stale cache keys some runtimes use
+            prefs.remove("lastBank");
+            prefs.remove("selectedBank");
+            core.log("UI: Bank locked to Hunter's Guild for 'Only Buy & Bank Jars'.");
+        }
+    }
+
+    // Public helpers for runtime to query
+    public boolean forceHuntersGuildBank() {
+        return MODE_ONLY_BUY_AND_BANK.equals(selectedMethod);
+    }
+
+    public String getPreferredBank() {
+        return forceHuntersGuildBank() ? BANK_HUNTERS_GUILD : preferredBank;
     }
 
     public String getSelectedMethod() {

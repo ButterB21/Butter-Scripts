@@ -131,7 +131,7 @@ public class CatchMoth extends Task {
             return;
         }
 
-        AtomicInteger animatingTimeout = new AtomicInteger(Utils.random(500));
+        AtomicInteger animatingTimeout = new AtomicInteger(script.random(500));
         script.log(CatchMoth.class, "Initial Animating timeout: " + animatingTimeout.get());
         Timer animatingTimer = new Timer();
         script.submitHumanTask(() -> {
@@ -139,7 +139,7 @@ public class CatchMoth extends Task {
                 if (!script.getPixelAnalyzer().isPlayerAnimating(0.5)) {
                     if (animatingTimer.timeElapsed() > animatingTimeout.get()) {
                         script.log(CatchMoth.class, "Animating timeout hit: " + animatingTimeout.get());
-                        animatingTimeout.set(Utils.random(500));
+                        animatingTimeout.set(script.random(500));
                         mothsCaught++;
                         return true;
                     }
@@ -163,7 +163,7 @@ public class CatchMoth extends Task {
             }
 
             return false;
-        }, Utils.random(9000, 13000));
+        }, script.random(9000, 13000));
 
     }
     private boolean hasJarsAvailable() {
@@ -210,8 +210,6 @@ public class CatchMoth extends Task {
             }
             script.log(CatchMoth.class, "Player(s) found, but none in moth area.");
         }
-
-
 
         List<WorldPosition> validMothPositions = new ArrayList<>();
         searchArea.forEach(position -> {
