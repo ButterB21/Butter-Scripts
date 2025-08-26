@@ -82,7 +82,6 @@ public class CatchMoth extends Task {
         script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
         int currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
 
-
         WorldPosition myPosition = script.getWorldPosition();
         if (myPosition == null) {
             script.log(CatchMoth.class, "Position is null!");
