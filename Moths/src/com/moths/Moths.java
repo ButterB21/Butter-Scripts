@@ -21,7 +21,7 @@ import java.util.List;
 @ScriptDefinition(
     name = "Moths",
     description = "A script for catching & banking moths.",
-    version = 2.2,
+    version = 2.4,
     author = "Butter",
     skillCategory = SkillCategory.HUNTER)
 
@@ -30,7 +30,7 @@ public class Moths extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "2.2";
+    private final String scriptVersion = "2.4";
 
     private UI ui;
     private final List<Task> tasks = new ArrayList<>();
