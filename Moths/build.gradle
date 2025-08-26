@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-version = '2.1' // keep in sync with your script
+version = '2.1'
 
 tasks.named('jar') {
     manifest {
@@ -12,13 +12,3 @@ tasks.named('jar') {
         )
     }
 }
-
-// If you build a shaded jar, also set manifest on shadowJar
-// tasks.named('shadowJar') {
-//     manifest {
-//         attributes(
-//             'Implementation-Title': 'Moths',
-//             'Implementation-Version': project.version
-//         )
-//     }
-// }
