@@ -8,7 +8,6 @@ import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
-import com.osmb.api.utils.Utils;
 import com.osmb.api.walker.WalkConfig;
 import moths.data.MothData;
 import moths.ui.UI;

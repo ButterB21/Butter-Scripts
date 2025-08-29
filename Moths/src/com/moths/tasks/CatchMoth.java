@@ -5,7 +5,6 @@ import com.osmb.api.item.ItemID;
 import com.osmb.api.location.area.Area;
 import com.osmb.api.location.area.impl.PolyArea;
 import com.osmb.api.location.position.types.WorldPosition;
-import com.osmb.api.profile.WorldProvider;
 import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
@@ -17,7 +16,6 @@ import com.osmb.api.visual.SearchablePixel;
 import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
-import com.osmb.api.world.World;
 import moths.data.MothData;
 import moths.ui.UI;
 
@@ -46,6 +44,9 @@ public class CatchMoth extends Task {
         String m = ui.getSelectedMethod();
         return "Catch & Bank".equalsIgnoreCase(m) || isCatchOnlyMode();
     }
+
+    private int currButterFlyJarCount = 0;
+
     @Override
     public boolean activate() {
         if (!catchMothTask) {
@@ -59,7 +60,12 @@ public class CatchMoth extends Task {
             return false;
         }
 
-        if (!hasJarsAvailable() && !isCatchOnlyMode()) {
+        if (isCatchOnlyMode()) {
+            script.log(CatchMoth.class, "In catch only mode - skipping jar check");
+            return true;
+        }
+
+        if (!hasJarsAvailable()) {
             script.log(CatchMoth.class, "No jars available - switching to banking mode");
             catchMothTask = false;
             bankTask = true;
@@ -75,14 +81,19 @@ public class CatchMoth extends Task {
         // Minimal change: Resolve Ruby Harvest location from UI (Farming Guild vs Land's End)
         MothData mothType = resolveMothTypeFromUI();
 
-        ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
-        if (inventorySnapshot == null) {
-            script.log(CatchMoth.class, "Cannot get inventory snapshot");
-            return;
-        }
+        if (!isCatchOnlyMode()) {
+            ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
+            if (inventorySnapshot == null) {
+                script.log(CatchMoth.class, "Cannot get inventory snapshot");
+                return;
+            }
 
-        script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
-        int currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+            script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
+            currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+        } else {
+                script.getWidgetManager().getTabManager().closeContainer();
+                script.log(CatchMoth.class, "closing inventory");
+        }
 
         WorldPosition myPosition = script.getWorldPosition();
         if (myPosition == null) {
