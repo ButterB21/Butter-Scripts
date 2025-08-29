@@ -156,7 +156,7 @@ public class HandleBank extends Task {
                             return false;
                         }
                         return true;
-                    }, Utils.random(16000, 22000));
+                    }, script.random(16000, 22000));
 
                     if (!climbedStairs) {
                         script.log(HandleBank.class, "Failed to climb stairs.");
@@ -189,7 +189,7 @@ public class HandleBank extends Task {
                     boolean movedThroughDoor = script.submitHumanTask(() -> {
                         WorldPosition pos = script.getWorldPosition();
                         return insideGuildArea.contains(pos);
-                    }, Utils.random(15000, 20000));
+                    }, script.random(15000, 20000));
                     if (!movedThroughDoor) {
                         script.log(HandleBank.class, "Failed to move through door, timing out!");
                         return;
@@ -241,7 +241,7 @@ public class HandleBank extends Task {
             return false;
         }
 
-        return script.submitHumanTask(() -> script.getWidgetManager().getBank().isVisible(), Utils.random(10000, 15000));
+        return script.submitHumanTask(() -> script.getWidgetManager().getBank().isVisible(), script.random(10000, 15000));
     }
 
     private boolean handleBank() {
@@ -306,14 +306,34 @@ public class HandleBank extends Task {
     private boolean walkToArea(Area bankArea) {
         script.log(HandleBank.class, "Walking to area...");
 
-        WalkConfig.Builder builder = new WalkConfig.Builder();
-        builder.breakCondition(() -> {
-            WorldPosition currentPosition = script.getWorldPosition();
-            if (currentPosition == null) {
-                return false;
-            }
-            return bankArea.contains(currentPosition);
-        });
-        return script.getWalker().walkTo(bankArea.getRandomPosition(), builder.build());
+        List<RSObject> banksFound = script.getObjectManager().getObjects(BANK_QUERY);
+        if (banksFound.isEmpty()) {
+            script.log(HandleBank.class, "No bank found nearby!");
+            return false;
+        }
+
+        RSObject bank = (RSObject) script.getUtils().getClosest(banksFound);
+
+        WorldPosition worldPosition = script.getWorldPosition();
+        if (worldPosition == null) {
+            script.log(HandleBank.class, "World position is null, cannot fill watering can.");
+            return false;
+        }
+
+        boolean walk = script.random(3) == 1 && bankArea.distanceTo(worldPosition) > 7;
+        int breakDistance = script.random(2, 5);
+        if (walk || !bank.isInteractableOnScreen()) {
+            WalkConfig.Builder builder = new WalkConfig.Builder();
+            builder.breakCondition(() -> {
+                WorldPosition currentPosition = script.getWorldPosition();
+                if (currentPosition == null) {
+                    return false;
+                }
+                return bank.isInteractableOnScreen() && bank.distance(currentPosition) <= breakDistance;
+            });
+            return script.getWalker().walkTo(bankArea.getRandomPosition(), builder.build());
+        }
+
+        return true;
     }
 }

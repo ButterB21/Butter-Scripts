@@ -57,18 +57,22 @@ public class Moths extends Script {
         getStageController().show(scene, "Moth Catcher Setup", false);
 
         new Thread(() -> moths.util.SimpleUpdater.checkForUpdates(this, scriptVersion), "moths-updater").start();
+
         method = ui.getSelectedMethod();
         isCatch = MODE_CATCH_MOTHS.equalsIgnoreCase(method) || MODE_ONLY_CATCH.equalsIgnoreCase(method);
         isRestockOnly = MODE_ONLY_BUY_AND_BANK.equalsIgnoreCase(method);
         isCatchOnly = MODE_ONLY_CATCH.equalsIgnoreCase(method);
 
         catchMothTask = isCatch;
-        bankTask = !isCatchOnly; // never bank in Only Catch mode
-        activateRestocking = isRestockOnly; // BuyJars only in restock-only mode; HandleBank toggles it for Catch+Restock
+        bankTask = !isCatchOnly;
+        activateRestocking = isRestockOnly;
         log(CatchMoth.class, "Starting Moths script with method: " + method
                 + "\nCatch Moth Task: " + catchMothTask
                 + "\nBank Task: " + bankTask
-                + "\nActivate Restocking: " + activateRestocking);
+                + "\nActivate Restocking: " + activateRestocking
+                + "\nSelected Location: " + ui.getSelectedLocation()
+                + "\nMoth region and bank region: " + MothData.fromUI(ui).getMothRegion() + ", " + MothData.fromUI(ui).getBankRegion()
+        );
 
         tasks.add(new CatchMoth(this, ui));
         tasks.add(new HandleBank(this, ui));
