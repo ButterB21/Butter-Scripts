@@ -113,7 +113,7 @@ public class CatchMoth extends Task {
         script.log(CatchMoth.class, "Finding closest moth to catch...");
 
         WorldPosition closestMoth = script.getWorldPosition().getClosest(validPositions);
-        Polygon poly = script.getSceneProjector().getTilePoly(closestMoth, true);
+        Polygon poly = script.getSceneProjector().getTileCube(closestMoth, 120);
         if (poly == null) {
             script.log(CatchMoth.class, "Polygon for closest moth is null at position: " + closestMoth);
             return;
@@ -125,7 +125,7 @@ public class CatchMoth extends Task {
             return;
         }
 
-        if (!script.getFinger().tap(mothBounds, "catch") ) {
+        if (!script.getFinger().tap(mothBounds.getCenter(), "catch") ) {
             script.log(CatchMoth.class, "Failed to tap on moth at position: " + closestMoth);
             return;
         }
