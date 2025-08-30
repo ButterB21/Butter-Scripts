@@ -310,7 +310,7 @@ public class HandleBank extends Task {
         return true;
     }
 
-    private boolean walkToArea(Area bankArea) {
+    private boolean walkToBank(Area bankArea) {
         script.log(HandleBank.class, "Walking to area...");
 
         List<RSObject> banksFound = script.getObjectManager().getObjects(BANK_QUERY);
@@ -336,6 +336,39 @@ public class HandleBank extends Task {
                 if (currentPosition == null) {
                     return false;
                 }
+                script.log(HandleBank.class, "Walking to bank...");
+                return bank.isInteractableOnScreen();
+            });
+            return script.getWalker().walkTo(bankArea.getRandomPosition(), builder.build());
+        }
+        return true;
+    }
+    private boolean walkToArea(Area bankArea) {
+        script.log(HandleBank.class, "Walking to area...");
+
+        WorldPosition worldPosition = script.getWorldPosition();
+        if (worldPosition == null) {
+            script.log(HandleBank.class, "World position is null, cannot fill watering can.");
+            return false;
+        }
+
+        boolean walk = script.random(3) == 1 && bankArea.distanceTo(worldPosition) > 7;
+        int breakDistance = script.random(2, 5);
+        if (walk) {
+            script.log(HandleBank.class, "Walking to bank area...");
+            WalkConfig.Builder builder = new WalkConfig.Builder().breakDistance(breakDistance);
+            builder.breakCondition(() -> {
+                WorldPosition currentPosition = script.getWorldPosition();
+                if (currentPosition == null) {
+                    return false;
+                }
+                List<RSObject> banksFound = script.getObjectManager().getObjects(BANK_QUERY);
+                if (banksFound.isEmpty()) {
+                    return false;
+                }
+
+                RSObject bank = (RSObject) script.getUtils().getClosest(banksFound);
+
                 script.log(HandleBank.class, "Walking to bank...");
                 return bank.isInteractableOnScreen();
             });

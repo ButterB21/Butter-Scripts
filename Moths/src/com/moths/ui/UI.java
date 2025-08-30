@@ -27,7 +27,6 @@ public class UI extends VBox {
     private HBox methodRow;
     private HBox mothTypeRow;
 
-    // Minimal addition: Location selection (only for Ruby Harvest catching)
     private ComboBox<String> locationComboBox;
     private HBox locationContainer;
 
