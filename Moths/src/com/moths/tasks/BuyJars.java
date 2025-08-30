@@ -3,6 +3,8 @@ package moths.tasks;
 import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemID;
 import com.osmb.api.item.ItemSearchResult;
+import com.osmb.api.location.area.Area;
+import com.osmb.api.location.area.impl.PolyArea;
 import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.script.Script;
@@ -15,22 +17,16 @@ import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
 import moths.components.ShopInterface;
+import moths.data.JarShopData;
 import moths.ui.UI;
 
+import java.util.List;
 import java.util.Set;
 
 import static moths.Moths.*;
 
 public class BuyJars extends Task {
-
-    private static final SearchablePixel[] NPC_PIXEL_CLUSTER = new SearchablePixel[]{
-            new SearchablePixel(-12566996, new SingleThresholdComparator(2), ColorModel.HSL),
-            new SearchablePixel(-13884650, new SingleThresholdComparator(2), ColorModel.HSL),
-            new SearchablePixel(-10202045, new SingleThresholdComparator(2), ColorModel.HSL),
-            new SearchablePixel(-14286849, new SingleThresholdComparator(2), ColorModel.HSL),
-    };
-    private final UI ui;
-    private final static RectangleArea NPC_AREA = new RectangleArea(1559, 3055, 6, 7, 0);
+     private final UI ui;
     ShopInterface shopInterface = new ShopInterface(script);
 
     public BuyJars(Script script, UI ui) {
@@ -58,6 +54,10 @@ public class BuyJars extends Task {
             return;
         }
 
+        JarShopData shop = JarShopData.fromUI(ui);
+        Area npcArea = shop.getNpcArea();
+        SearchablePixel[] NPC_CLUSTER = shop.getNpcPixels();
+
         if (shopInterface.isVisible()) {
             handleShop(inventorySnapshot);
             return;
@@ -67,13 +67,15 @@ public class BuyJars extends Task {
                 return;
             }
 
-            if (NPC_AREA.contains(position)) {
-                if (!openShop()) {
+            int distance = script.random(1, 6);
+
+            if (npcArea.contains(position) || npcArea.distanceTo(position) <= distance) {
+                if (!openShop(NPC_CLUSTER)) {
                     script.log(BuyJars.class, "Shop still not visible!");
                     return;
                 }
             } else {
-                walkToArea(NPC_AREA);
+                walkToArea(npcArea);
             }
         }
         script.log(BuyJars.class, "Jars bought so far: " + jarsBought);
@@ -91,7 +93,7 @@ public class BuyJars extends Task {
         }, 5000);
     }
 
-    private boolean openShop() {
+    private boolean openShop(SearchablePixel[] npcCluster) {
         UIResultList<WorldPosition> searchArea = script.getWidgetManager().getMinimap().getNPCPositions();
 
         if (searchArea.isNotVisible()) {
@@ -106,7 +108,7 @@ public class BuyJars extends Task {
                 continue;
             }
 
-            Rectangle validBounds = script.getPixelAnalyzer().getHighlightBounds(poly, NPC_PIXEL_CLUSTER);
+            Rectangle validBounds = script.getPixelAnalyzer().getHighlightBounds(poly, npcCluster);
             if (validBounds == null) {
                 script.log(BuyJars.class, "npc position is null, checking next position...");
                 continue;
@@ -115,7 +117,7 @@ public class BuyJars extends Task {
             script.log(BuyJars.class, "NPC found!");
             if (script.getFinger().tap(validBounds, "Trade")) {
                 script.log(BuyJars.class, "Trade interaction successful!");
-                return script.submitHumanTask(() -> shopInterface.isVisible(), Utils.random(4000, 8000));
+                return script.submitHumanTask(() -> shopInterface.isVisible(), script.random(4000, 8000));
             }
 
             script.log(BuyJars.class, "Failed to interact properly!");
@@ -146,10 +148,10 @@ public class BuyJars extends Task {
         }
 
         int inventoryFreeSlots = inventorySnapshot.getFreeSlots();
-        int jarsInShop = itemInShop.getStackAmount();
+        int stock = itemInShop.getStackAmount();
 
-        if (jarsInShop < 10) {
-            script.log(BuyJars.class, "Shop stock amount is low. Hopping worlds..." + jarsInShop);
+        if (stock < 10) {
+            script.log(BuyJars.class, "Shop stock amount is low. Hopping worlds..." + stock);
             shopInterface.close();
             script.getProfileManager().forceHop();
             return false;
@@ -160,28 +162,46 @@ public class BuyJars extends Task {
             return false;
         }
 
-        if (itemInShop.interact()) {
-            if (buyJars(inventoryFreeSlots)) {
+        if (!itemInShop.interact()) {
+            script.log(BuyJars.class, "interact failed!");
+            return false;
+        }
+
+        if (buyJars(inventoryFreeSlots)) {
+            ItemGroupResult afterInv = script.getWidgetManager().getInventory().search(Set.of());
+            if (afterInv != null) {
                 int after = script.getWidgetManager().getInventory().search(Set.of()).getFreeSlots();
                 jarsBought += inventoryFreeSlots - after;
             }
-            shopInterface.close();
-            return true;
         }
-        script.log(BuyJars.class, "interact failed!");
-        return false;
+
+        ItemSearchResult postItem = script.getItemManager().scanItemGroup(shopInterface, Set.of(ItemID.BUTTERFLY_JAR)).getItem(ItemID.BUTTERFLY_JAR);
+        if (postItem != null) {
+            int postStock = postItem.getStackAmount();
+            if (postStock < 10) {
+                script.log(BuyJars.class, "Shop stock amount is low after purchase. Hopping worlds..." + postStock);
+                shopInterface.close();
+                script.getProfileManager().forceHop();
+                return false;
+            }
+        }
+        if (shopInterface.isVisible()) {
+            shopInterface.close();
+        }
+        return true;
     }
 
-    private boolean walkToArea(RectangleArea area) {
+    private boolean walkToArea(Area area) {
         script.log(BuyJars.class, "Walking to area...");
-
-        WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(3);
+        int stopDistance = script.random(2, 5);
+        script.log(BuyJars.class, "Stop distance: " + stopDistance);
+        WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(2).breakDistance(stopDistance);
         builder.breakCondition(() -> {
             WorldPosition currentPosition = script.getWorldPosition();
             if (currentPosition == null) {
                 return false;
             }
-            return area.contains(currentPosition);
+            return area.contains(currentPosition) || currentPosition.distanceTo(area.getRandomPosition()) <= stopDistance;
         });
         return script.getWalker().walkTo(area.getRandomPosition(), builder.build());
     }

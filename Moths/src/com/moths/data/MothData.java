@@ -110,11 +110,7 @@ public enum MothData {
             return SUNLIGHT_MOTH;
         }
 
-        // In the dedicated restock-only mode, fall back to Moonlight’s hub
-        if ("Only Buy & Bank Jars".equalsIgnoreCase(ui.getSelectedMethod())) {
-            return MOONLIGHT_MOTH;
-        }
-
+        // Fallback
         return MOONLIGHT_MOTH;
     }
 }

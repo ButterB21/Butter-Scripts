@@ -9,6 +9,7 @@ import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
 import com.osmb.api.walker.WalkConfig;
+import moths.data.JarShopData;
 import moths.data.MothData;
 import moths.ui.UI;
 
@@ -119,6 +120,8 @@ public class HandleBank extends Task {
         }
 
         mothType = MothData.fromUI(ui);
+        JarShopData shop = JarShopData.fromUI(ui);
+
         if (jarsAvailable() <= 0) {
             if (activateRestocking) {
                 //check for coins
@@ -197,7 +200,12 @@ public class HandleBank extends Task {
             }
         }
 
-        if (!walkToArea(mothType.getBankArea())) {
+        if (ui.getSelectedMethod().equalsIgnoreCase("Only Buy & Bank Jars")) {
+            if (!walkToArea(shop.getbankArea())) {
+                return;
+            }
+
+        } else if (!walkToArea(mothType.getBankArea())) {
             script.log(HandleBank.class, "Not in bank area.");
             return;
         }
@@ -322,17 +330,17 @@ public class HandleBank extends Task {
         boolean walk = script.random(3) == 1 && bankArea.distanceTo(worldPosition) > 7;
         int breakDistance = script.random(2, 5);
         if (walk || !bank.isInteractableOnScreen()) {
-            WalkConfig.Builder builder = new WalkConfig.Builder();
+            WalkConfig.Builder builder = new WalkConfig.Builder().breakDistance(breakDistance);
             builder.breakCondition(() -> {
                 WorldPosition currentPosition = script.getWorldPosition();
                 if (currentPosition == null) {
                     return false;
                 }
-                return bank.isInteractableOnScreen() && bank.distance(currentPosition) <= breakDistance;
+                script.log(HandleBank.class, "Walking to bank...");
+                return bank.isInteractableOnScreen();
             });
             return script.getWalker().walkTo(bankArea.getRandomPosition(), builder.build());
         }
-
         return true;
     }
 }

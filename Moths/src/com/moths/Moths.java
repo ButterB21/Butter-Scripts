@@ -5,6 +5,7 @@ import com.osmb.api.script.ScriptDefinition;
 import com.osmb.api.script.SkillCategory;
 import com.osmb.api.visual.drawing.Canvas;
 import javafx.scene.Scene;
+import moths.data.JarShopData;
 import moths.data.MothData;
 import moths.tasks.BuyJars;
 import moths.tasks.CatchMoth;
@@ -21,7 +22,7 @@ import java.util.List;
 @ScriptDefinition(
     name = "Moths",
     description = "A script for catching & banking moths.",
-    version = 2.4,
+    version = 2.5,
     author = "Butter",
     skillCategory = SkillCategory.HUNTER)
 
@@ -30,7 +31,7 @@ public class Moths extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "2.4";
+    private final String scriptVersion = "2.5";
 
     private UI ui;
     private final List<Task> tasks = new ArrayList<>();
@@ -47,6 +48,7 @@ public class Moths extends Script {
     private boolean isCatch;
     private boolean isRestockOnly;
     private boolean isCatchOnly;
+    private int bankRegion;
 
     private static final Font ARIEL = new Font("Arial", Font.PLAIN, 14);
     @Override
@@ -66,11 +68,16 @@ public class Moths extends Script {
         catchMothTask = isCatch;
         bankTask = !isCatchOnly;
         activateRestocking = isRestockOnly;
+
+        if (isRestockOnly) {
+            bankRegion = JarShopData.fromUI(ui).getShopRegion();
+        } else {
+            bankRegion = MothData.fromUI(ui).getBankRegion();
+        }
         log(CatchMoth.class, "Starting Moths script with method: " + method
                 + "\nCatch Moth Task: " + catchMothTask
                 + "\nBank Task: " + bankTask
                 + "\nActivate Restocking: " + activateRestocking
-                + "\nSelected Location: " + ui.getSelectedLocation()
                 + "\nMoth region and bank region: " + MothData.fromUI(ui).getMothRegion() + ", " + MothData.fromUI(ui).getBankRegion()
         );
 
@@ -92,7 +99,7 @@ public class Moths extends Script {
 
     @Override
     public int[] regionsToPrioritise() {
-        return new int[]{MothData.fromUI(ui).getMothRegion(), MothData.fromUI(ui).getBankRegion()};
+        return new int[]{MothData.fromUI(ui).getMothRegion(), bankRegion};
     }
 
     @Override
