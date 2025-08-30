@@ -192,10 +192,10 @@ public class BuyJars extends Task {
     }
 
     private boolean walkToArea(Area area) {
-        script.log(BuyJars.class, "Walking to area...");
+        script.log(BuyJars.class, "Walking to npc...");
         int stopDistance = script.random(2, 5);
         script.log(BuyJars.class, "Stop distance: " + stopDistance);
-        WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(2).breakDistance(stopDistance);
+        WalkConfig.Builder builder = new WalkConfig.Builder().breakDistance(stopDistance);
         builder.breakCondition(() -> {
             WorldPosition currentPosition = script.getWorldPosition();
             if (currentPosition == null) {
