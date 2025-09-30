@@ -54,8 +54,8 @@ public class BuyJars extends Task {
 
         if(inventorySnapshot.isFull()) {
             script.log(BuyJars.class, "Invy full, ending BuyJars task...");
-//            bankTask = true;
             catchMothTask = true;
+            bankTask = true;
             return;
         }
 
