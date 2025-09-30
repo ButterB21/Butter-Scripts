@@ -8,8 +8,8 @@ import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
 import com.osmb.api.shape.Rectangle;
+import com.osmb.api.utils.RandomUtils;
 import com.osmb.api.utils.UIResultList;
-import com.osmb.api.utils.Utils;
 import com.osmb.api.visual.SearchablePixel;
 import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
@@ -54,7 +54,8 @@ public class BuyJars extends Task {
 
         if(inventorySnapshot.isFull()) {
             script.log(BuyJars.class, "Invy full, ending BuyJars task...");
-            bankTask = true;
+//            bankTask = true;
+            catchMothTask = true;
             return;
         }
 
@@ -81,7 +82,7 @@ public class BuyJars extends Task {
     }
 
     private boolean buyJars(int currentFreeSlots) {
-        return script.submitTask(() -> {
+        return script.pollFramesHuman(() -> {
             ItemGroupResult currInventorySnapShot = script.getWidgetManager().getInventory().search(Set.of());
             if (currInventorySnapShot == null) {
                 return false;
@@ -115,7 +116,7 @@ public class BuyJars extends Task {
             script.log(BuyJars.class, "NPC found!");
             if (script.getFinger().tap(validBounds, "Trade")) {
                 script.log(BuyJars.class, "Trade interaction successful!");
-                return script.submitHumanTask(() -> shopInterface.isVisible(), Utils.random(4000, 8000));
+                return script.pollFramesHuman(() -> shopInterface.isVisible(), RandomUtils.uniformRandom(4000, 8000));
             }
 
             script.log(BuyJars.class, "Failed to interact properly!");

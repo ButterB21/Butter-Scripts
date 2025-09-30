@@ -5,19 +5,17 @@ import com.osmb.api.item.ItemID;
 import com.osmb.api.location.area.Area;
 import com.osmb.api.location.area.impl.PolyArea;
 import com.osmb.api.location.position.types.WorldPosition;
-import com.osmb.api.profile.WorldProvider;
 import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
 import com.osmb.api.shape.Rectangle;
+import com.osmb.api.utils.RandomUtils;
 import com.osmb.api.utils.UIResultList;
-import com.osmb.api.utils.Utils;
 import com.osmb.api.utils.timing.Timer;
 import com.osmb.api.visual.SearchablePixel;
 import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
-import com.osmb.api.world.World;
 import moths.data.MothData;
 import moths.ui.UI;
 
@@ -130,15 +128,15 @@ public class CatchMoth extends Task {
             return;
         }
 
-        AtomicInteger animatingTimeout = new AtomicInteger(script.random(500));
+        AtomicInteger animatingTimeout = new AtomicInteger(RandomUtils.uniformRandom(500));
         script.log(CatchMoth.class, "Initial Animating timeout: " + animatingTimeout.get());
         Timer animatingTimer = new Timer();
-        script.submitHumanTask(() -> {
+        script.pollFramesHuman(() -> {
             if (isCatchOnlyMode()) {
                 if (!script.getPixelAnalyzer().isPlayerAnimating(0.5)) {
                     if (animatingTimer.timeElapsed() > animatingTimeout.get()) {
                         script.log(CatchMoth.class, "Animating timeout hit: " + animatingTimeout.get());
-                        animatingTimeout.set(script.random(500));
+                        animatingTimeout.set(RandomUtils.uniformRandom(500));
                         mothsCaught++;
                         return true;
                     }
@@ -162,7 +160,7 @@ public class CatchMoth extends Task {
             }
 
             return false;
-        }, script.random(9000, 13000));
+        }, RandomUtils.uniformRandom(9000, 13000));
 
     }
     private boolean hasJarsAvailable() {
@@ -248,14 +246,14 @@ public class CatchMoth extends Task {
             }
 
             if (stairObj.interact("Climb-down")) {
-                script.submitHumanTask(() -> {
+                script.pollFramesHuman(() -> {
                     WorldPosition position = script.getWorldPosition();
                     if (position == null) {
                         script.log(CatchMoth.class, "Position is null.");
                         return false;
                     }
                     return moth.getMothRegion() == position.getRegionID();
-                }, Utils.random(10000, 15000));
+                }, RandomUtils.uniformRandom(10000, 15000));
             }
         } else if (moth == MothData.BLACK_WARLOCK || moth == MothData.RUBY_HARVEST) {
             if (insideGuildArea.contains(myPosition)) {
@@ -272,10 +270,10 @@ public class CatchMoth extends Task {
                 }
 
                 // Wait for player to move through the door
-                boolean exitedGuild = script.submitHumanTask(() -> {
+                boolean exitedGuild = script.pollFramesHuman(() -> {
                     WorldPosition pos = script.getWorldPosition();
                     return pos != null && !insideGuildArea.contains(pos);
-                }, Utils.random(15000, 20000));
+                }, RandomUtils.uniformRandom(15000, 20000));
                 if (!exitedGuild) {
                     script.log(CatchMoth.class, "Failed to move through door, timing out!");
                     return false;

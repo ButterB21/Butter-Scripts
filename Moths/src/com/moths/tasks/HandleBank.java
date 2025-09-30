@@ -8,7 +8,7 @@ import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
-import com.osmb.api.utils.Utils;
+import com.osmb.api.utils.RandomUtils;
 import com.osmb.api.walker.WalkConfig;
 import moths.data.MothData;
 import moths.ui.UI;
@@ -102,6 +102,12 @@ public class HandleBank extends Task {
             return true;
         }
 
+        if (mothType == MothData.SUNLIGHT_MOTH) {
+            walkToArea(mothType.getMothArea());
+            script.log(HandleBank.class, "Not in the proper area! Walking to moth area...");
+            return false;
+        }
+
         script.log(HandleBank.class, "Not in appropriate region for banking");
         return false;
     }
@@ -145,7 +151,7 @@ public class HandleBank extends Task {
                         return;
                     }
 
-                    boolean climbedStairs = script.submitHumanTask(() -> {
+                    boolean climbedStairs = script.pollFramesHuman(() -> {
                         WorldPosition pos = script.getWorldPosition();
                         if (pos == null) {
                             script.log(HandleBank.class, "Position is null!");
@@ -156,7 +162,7 @@ public class HandleBank extends Task {
                             return false;
                         }
                         return true;
-                    }, Utils.random(16000, 22000));
+                    }, RandomUtils.uniformRandom(16000, 22000));
 
                     if (!climbedStairs) {
                         script.log(HandleBank.class, "Failed to climb stairs.");
@@ -186,10 +192,10 @@ public class HandleBank extends Task {
                     }
 
                     // Wait for player to move through the door
-                    boolean movedThroughDoor = script.submitHumanTask(() -> {
+                    boolean movedThroughDoor = script.pollFramesHuman(() -> {
                         WorldPosition pos = script.getWorldPosition();
                         return insideGuildArea.contains(pos);
-                    }, Utils.random(15000, 20000));
+                    }, RandomUtils.uniformRandom(15000, 20000));
                     if (!movedThroughDoor) {
                         script.log(HandleBank.class, "Failed to move through door, timing out!");
                         return;
@@ -241,7 +247,7 @@ public class HandleBank extends Task {
             return false;
         }
 
-        return script.submitHumanTask(() -> script.getWidgetManager().getBank().isVisible(), Utils.random(10000, 15000));
+        return script.pollFramesHuman(() -> script.getWidgetManager().getBank().isVisible(), RandomUtils.uniformRandom(10000, 15000));
     }
 
     private boolean handleBank() {

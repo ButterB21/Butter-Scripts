@@ -6,6 +6,7 @@ import com.osmb.api.shape.Rectangle;
 import com.osmb.api.ui.SpriteID;
 import com.osmb.api.ui.component.ComponentCentered;
 import com.osmb.api.ui.component.ComponentImage;
+import com.osmb.api.utils.RandomUtils;
 import com.osmb.api.utils.UIResult;
 import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.ColorUtils;
@@ -54,7 +55,7 @@ public class ShopInterface extends ComponentCentered implements ItemGroup {
 
         Rectangle closeBounds = bounds.getSubRectangle(CLOSE_BUTTON_BOUNDS);
         core.getFinger().tap(closeBounds);
-        core.submitHumanTask(() -> !isVisible(), 3000);
+        core.pollFramesHuman(() -> !isVisible(), 3000);
     }
 
     public UIResult<Integer> getSelectedAmount() {
@@ -98,7 +99,7 @@ public class ShopInterface extends ComponentCentered implements ItemGroup {
             int btnAmount = Integer.parseInt(buttonText);
             if (btnAmount == amount) {
                 core.getFinger().tap(button.getPadding(4));
-                return core.submitTask(() -> {
+                return core.pollFramesUntil(() -> {
                     UIResult<Integer> selectedAmount_ = getSelectedAmount();
                     if (selectedAmount_.isNotVisible()) {
                         return false;
@@ -107,7 +108,7 @@ public class ShopInterface extends ComponentCentered implements ItemGroup {
                         return false;
                     }
                     return selectedAmount_.get() == amount;
-                }, core.random(1600, 3000));
+                }, RandomUtils.uniformRandom(1600, 3000));
             }
         }
         return false;

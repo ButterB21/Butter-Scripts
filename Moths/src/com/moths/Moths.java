@@ -21,7 +21,7 @@ import java.util.List;
 @ScriptDefinition(
     name = "Moths",
     description = "A script for catching & banking moths.",
-    version = 2.3,
+    version = 2.52,
     author = "Butter",
     skillCategory = SkillCategory.HUNTER)
 
@@ -30,7 +30,7 @@ public class Moths extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "2.3";
+    private final String scriptVersion = "2.52";
 
     private UI ui;
     private final List<Task> tasks = new ArrayList<>();
@@ -105,9 +105,7 @@ public class Moths extends Script {
         long now = System.currentTimeMillis();
         long elapsed = now - startTime;
 
-        int xpPerMoth = MothData.fromUI(ui).getXpPerMoth();
         int mothsPerHour = elapsed > 0 ? (int) ((mothsCaught * 3600000L) / elapsed) : 0;
-        int xpPerHour = elapsed >0 ? (int) ((mothsCaught * xpPerMoth * 3600000L) / elapsed) : 0;
         int y = 40;
 
         c.fillRect(5, y, 220, isRestockOnly ? 80 : 140, Color.BLACK.getRGB(), 0.8);
@@ -119,8 +117,6 @@ public class Moths extends Script {
             c.drawText("Jars Bought: " + jarsBought,10, y += 20, Color.WHITE.getRGB(), ARIEL);
         } else {
             c.drawText("Moths caught: " + f.format(mothsCaught), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
-            c.drawText("XP/Hr: " + f.format(xpPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
-            c.drawText("Total XP: " + f.format(mothsCaught * xpPerMoth), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
             c.drawText("Moths/hr: " + f.format(mothsPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
         }
     }

@@ -5,6 +5,41 @@
 *.ids
 *.orig
 
+**/build/
+**/out/
+**/dist/
+**/target/
+**/tmp/
+**/temp/
+
+# Raw / obfuscated jars
+**/*-raw.jar
+**/*-obf.jar
+Moths.jar
+
+
+# Obfuscator + tool jars
+**/tools/*.jar
+
+# Local libs
+**/lib/*.jar
+
+# Allatori / other obfuscator logs & mappings
+renaming-log.xml
+**/renaming-log.xml
+allatori-*.xml.log
+*.mapping
+*.map
+*.obf
+*.obfuscation.log
+
+# Manifest you might generate manually
+MANIFEST.MF
+
+# Crash / error logs
+hs_err_pid*.log
+replay_pid*.log
+
 # Eclipse
 .apt_generated
 .classpath
