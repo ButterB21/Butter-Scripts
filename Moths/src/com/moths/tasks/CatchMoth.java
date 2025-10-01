@@ -44,6 +44,9 @@ public class CatchMoth extends Task {
         String m = ui.getSelectedMethod();
         return "Catch & Bank".equalsIgnoreCase(m) || isCatchOnlyMode();
     }
+
+    private int currButterFlyJarCount = 0;
+
     @Override
     public boolean activate() {
         if (!catchMothTask) {
@@ -57,7 +60,12 @@ public class CatchMoth extends Task {
             return false;
         }
 
-        if (!hasJarsAvailable() && !isCatchOnlyMode()) {
+        if (isCatchOnlyMode()) {
+            script.log(CatchMoth.class, "In catch only mode - skipping jar check");
+            return true;
+        }
+
+        if (!hasJarsAvailable()) {
             script.log(CatchMoth.class, "No jars available - switching to banking mode");
             catchMothTask = false;
             bankTask = true;
@@ -70,15 +78,22 @@ public class CatchMoth extends Task {
 
     @Override
     public void execute() {
-        MothData mothType = MothData.fromUI(ui);
-        ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
-        if (inventorySnapshot == null) {
-            script.log(CatchMoth.class, "Cannot get inventory snapshot");
-            return;
-        }
+        // Minimal change: Resolve Ruby Harvest location from UI (Farming Guild vs Land's End)
+        MothData mothType = resolveMothTypeFromUI();
 
-        script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
-        int currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+        if (!isCatchOnlyMode()) {
+            ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
+            if (inventorySnapshot == null) {
+                script.log(CatchMoth.class, "Cannot get inventory snapshot");
+                return;
+            }
+
+            script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
+            currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+        } else {
+                script.getWidgetManager().getTabManager().closeContainer();
+                script.log(CatchMoth.class, "closing inventory");
+        }
 
         WorldPosition myPosition = script.getWorldPosition();
         if (myPosition == null) {
@@ -93,7 +108,7 @@ public class CatchMoth extends Task {
 
         if (!mothType.getMothArea().contains(myPosition)) {
             script.log(CatchMoth.class, "Player is not in the moth wander area!");
-            if (mothType == MothData.BLACK_WARLOCK || mothType == MothData.RUBY_HARVEST) {
+            if (mothType == MothData.BLACK_WARLOCK || mothType == MothData.RUBY_HARVEST || mothType == MothData.RUBY_HARVEST_KOUREND) {
                 script.log(CatchMoth.class, "Returning to area for Black Warlock/Ruby Harvest");
                 returnToMothRegion(mothType);
                 return;
@@ -163,6 +178,22 @@ public class CatchMoth extends Task {
         }, RandomUtils.uniformRandom(9000, 13000));
 
     }
+
+    // Map UI selection to MothData, only branching for Ruby Harvest (Land's End vs Farming Guild)
+    private MothData resolveMothTypeFromUI() {
+        if (ui.getSelectedMothItemId() == ItemID.RUBY_HARVEST) {
+            if (ui.isRubyHarvestAtLandsEnd()) {
+                script.log(CatchMoth.class, "UI selected Ruby Harvest at Land's End (Kourend).");
+                return MothData.RUBY_HARVEST_KOUREND;
+            } else {
+                script.log(CatchMoth.class, "UI selected Ruby Harvest at Farming Guild.");
+                return MothData.RUBY_HARVEST; // existing Farming Guild entry
+            }
+        }
+        // Fall back to your existing mapping for other types/modes
+        return MothData.fromUI(ui);
+    }
+
     private boolean hasJarsAvailable() {
         ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
 
@@ -255,7 +286,7 @@ public class CatchMoth extends Task {
                     return moth.getMothRegion() == position.getRegionID();
                 }, RandomUtils.uniformRandom(10000, 15000));
             }
-        } else if (moth == MothData.BLACK_WARLOCK || moth == MothData.RUBY_HARVEST) {
+        } else if (moth == MothData.BLACK_WARLOCK || moth == MothData.RUBY_HARVEST || moth == MothData.RUBY_HARVEST_KOUREND) {
             if (insideGuildArea.contains(myPosition)) {
                 script.log(CatchMoth.class, "Player is inside guild, exiting...");
                 RSObject guildDoor = script.getObjectManager().getClosestObject("Door");

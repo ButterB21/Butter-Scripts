@@ -23,7 +23,11 @@ public enum MothData {
 
     BLACK_WARLOCK(
             new PolyArea(List.of(
-                    new WorldPosition(1239, 3748, 0),new WorldPosition(1243, 3745, 0),new WorldPosition(1243, 3744, 0),new WorldPosition(1241, 3740, 0),new WorldPosition(1224, 3740, 0),new WorldPosition(1224, 3743, 0),new WorldPosition(1232, 3744, 0),new WorldPosition(1232, 3746, 0))),
+                    new WorldPosition(1239, 3749, 0),
+                    new WorldPosition(1243, 3744, 0),
+                    new WorldPosition(1242, 3740, 0),
+                    new WorldPosition(1225, 3740, 0),
+                    new WorldPosition(1225, 3743, 0))),
             new SearchablePixel[] {
                     new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-7332332, new SingleThresholdComparator(1), ColorModel.HSL),
@@ -31,9 +35,12 @@ public enum MothData {
             4922, 4922, new RectangleArea(1247, 3739, 7, 4, 0), 54),
     RUBY_HARVEST(
             new PolyArea(List.of(
-                    new WorldPosition(1239, 3748, 0),new WorldPosition(1243, 3745, 0),new WorldPosition(1243, 3744, 0),new WorldPosition(1241, 3740, 0),new WorldPosition(1224, 3740, 0),new WorldPosition(1224, 3743, 0),new WorldPosition(1232, 3744, 0),new WorldPosition(1232, 3746, 0))),
-            //      new WorldPosition(1239, 3748, 0),new WorldPosition(1237, 3747, 0),new WorldPosition(1232, 3746, 0),new WorldPosition(1232, 3740, 0),new WorldPosition(1237, 3739, 0),new WorldPosition(1241, 3739, 0),new WorldPosition(1241, 3746, 0),new WorldPosition(1243, 3746, 0),new WorldPosition(1243, 3744, 0))),
-            new SearchablePixel[] {
+                    new WorldPosition(1239, 3749, 0),
+                    new WorldPosition(1243, 3744, 0),
+                    new WorldPosition(1242, 3740, 0),
+                    new WorldPosition(1225, 3740, 0),
+                    new WorldPosition(1225, 3743, 0))),
+             new SearchablePixel[] {
                     new SearchablePixel(-7332332, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-11584468, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),},
@@ -46,7 +53,17 @@ public enum MothData {
                     new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-4874966, new SingleThresholdComparator(1), ColorModel.HSL),},
             6191, 6191, new RectangleArea(1541, 3038, 9, 5, 0), 74
-                );
+                ),
+
+    // OTHER LOCATIONS FOR MOTHS/BUTTERFLIES
+    RUBY_HARVEST_KOUREND(
+            new RectangleArea(1499, 3471, 25, 16, 0),
+            new SearchablePixel[] {
+                    new SearchablePixel(-7332332, new SingleThresholdComparator(1), ColorModel.HSL),
+                    new SearchablePixel(-11584468, new SingleThresholdComparator(1), ColorModel.HSL),
+                    new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL),},
+            5942, 5941, new RectangleArea(1508, 3419, 5, 3, 0), 24
+    );
 
 
     private final Area mothArea;
@@ -91,18 +108,17 @@ public enum MothData {
         } else if (ui.isCatchingBlackWarlock()) {
             return BLACK_WARLOCK;
         } else if (ui.isCatchingRubyHarvest()) {
+            if (ui.isRubyHarvestAtLandsEnd()) {
+                return RUBY_HARVEST_KOUREND;
+            }
             return RUBY_HARVEST;
         } else if (ui.isCatchingBothWarlockAndHarvest()) {
-            return BLACK_WARLOCK; //Black Warlock and Ruby Harvest are so similar in enum's, the user only needs to have highlights turned on for both to catch them.
+            return BLACK_WARLOCK;
         } else if (ui.isCatchingSunlightMoth()) {
             return SUNLIGHT_MOTH;
         }
 
-        // In the dedicated restock-only mode, fall back to Moonlight’s hub
-        if ("Only Buy & Bank Jars".equalsIgnoreCase(ui.getSelectedMethod())) {
-            return MOONLIGHT_MOTH;
-        }
-
+        // Fallback
         return MOONLIGHT_MOTH;
     }
 }

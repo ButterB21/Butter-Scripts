@@ -44,7 +44,7 @@ public class ShopInterface extends ComponentCentered implements ItemGroup {
 
         Rectangle titleBounds = bounds.getSubRectangle(TITLE_BOUNDS);
         String title = core.getOCR().getText(Font.STANDARD_FONT_BOLD, titleBounds, ColorUtils.ORANGE_UI_TEXT);
-        return title.equalsIgnoreCase("Imia's Supplies");
+        return title.equalsIgnoreCase("Imia's Supplies") || title.equalsIgnoreCase("Nardah Hunter Shop.");
     }
 
     public void close() {
