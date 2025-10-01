@@ -52,10 +52,11 @@ public class BuyJars extends Task {
             return;
         }
 
-        if(inventorySnapshot.isFull()) {
+        if (inventorySnapshot.isFull()) {
             script.log(BuyJars.class, "Invy full, ending BuyJars task...");
             catchMothTask = true;
-            bankTask = true;
+//            bankTask = true;
+            activateRestocking = false;
             return;
         }
 
