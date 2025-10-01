@@ -15,7 +15,6 @@
 # Raw / obfuscated jars
 **/*-raw.jar
 **/*-obf.jar
-Moths.jar
 
 
 # Obfuscator + tool jars
