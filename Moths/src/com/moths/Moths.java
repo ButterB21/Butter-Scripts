@@ -19,18 +19,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 @ScriptDefinition(
-    name = "Moths",
-    description = "A script for catching & banking moths.",
-    version = 2.53,
-    author = "Butter",
-    skillCategory = SkillCategory.HUNTER)
-
+        name = "Moths",
+        description = "A script for catching & banking moths.",
+        version = 2.55,
+        author = "Butter",
+        skillCategory = SkillCategory.HUNTER)
 public class Moths extends Script {
     public Moths(Object scriptCore) {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "2.53";
+    private final String scriptVersion = "2.55";
 
     private UI ui;
     private final List<Task> tasks = new ArrayList<>();
@@ -49,6 +48,7 @@ public class Moths extends Script {
     private boolean isCatchOnly;
 
     private static final Font ARIEL = new Font("Arial", Font.PLAIN, 14);
+
     @Override
     public void onStart() {
         ui = new UI(this);
@@ -63,12 +63,8 @@ public class Moths extends Script {
         isCatchOnly = MODE_ONLY_CATCH.equalsIgnoreCase(method);
 
         catchMothTask = isCatch;
-        bankTask = !isCatchOnly; // never bank in Only Catch mode
-        activateRestocking = isRestockOnly; // BuyJars only in restock-only mode; HandleBank toggles it for Catch+Restock
-        log(CatchMoth.class, "Starting Moths script with method: " + method
-                + "\nCatch Moth Task: " + catchMothTask
-                + "\nBank Task: " + bankTask
-                + "\nActivate Restocking: " + activateRestocking);
+        bankTask = !isCatchOnly;
+        activateRestocking = isRestockOnly;
 
         tasks.add(new CatchMoth(this, ui));
         tasks.add(new HandleBank(this, ui));
@@ -88,7 +84,19 @@ public class Moths extends Script {
 
     @Override
     public int[] regionsToPrioritise() {
-        return new int[]{MothData.fromUI(ui).getMothRegion(), MothData.fromUI(ui).getBankRegion()};
+        // CHANGE: Multi-region support
+        MothData data = MothData.fromUI(ui);
+        int[] mothRegions = data.getAllMothRegions();
+        int bankRegion = data.getBankRegion();
+        boolean already = false;
+        for (int r : mothRegions) {
+            if (r == bankRegion) { already = true; break; }
+        }
+        if (already) return mothRegions;
+        int[] combined = new int[mothRegions.length + 1];
+        System.arraycopy(mothRegions, 0, combined, 0, mothRegions.length);
+        combined[mothRegions.length] = bankRegion;
+        return combined;
     }
 
     @Override
@@ -104,17 +112,17 @@ public class Moths extends Script {
 
         long now = System.currentTimeMillis();
         long elapsed = now - startTime;
-
-        int mothsPerHour = elapsed > 0 ? (int) ((mothsCaught * 3600000L) / elapsed) : 0;
+        int mothsPerHour = elapsed > 0 ? (int)((mothsCaught * 3600000L) / elapsed) : 0;
         int y = 40;
 
-        c.fillRect(5, y, 220, isRestockOnly ? 80 : 140, Color.BLACK.getRGB(), 0.8);
-        c.drawRect(5, y, 220, isRestockOnly ? 80 : 140, Color.BLUE.getRGB());
+        boolean isRestockOnlyMode = MODE_ONLY_BUY_AND_BANK.equalsIgnoreCase(method);
+        c.fillRect(5, y, 220, isRestockOnlyMode ? 80 : 140, Color.BLACK.getRGB(), 0.8);
+        c.drawRect(5, y, 220, isRestockOnlyMode ? 80 : 140, Color.BLUE.getRGB());
 
         c.drawText("Method: " + method,10, y += 20, Color.WHITE.getRGB(), ARIEL);
         c.drawText("Script version: " + scriptVersion, 10, y += 20, Color.WHITE.getRGB(), ARIEL);
-        if (isRestockOnly) {
-            c.drawText("Jars Bought: " + jarsBought,10, y += 20, Color.WHITE.getRGB(), ARIEL);
+        if (isRestockOnlyMode) {
+            c.drawText("Jars Bought: " + f.format(jarsBought),10, y += 20, Color.WHITE.getRGB(), ARIEL);
         } else {
             c.drawText("Moths caught: " + f.format(mothsCaught), 10, y += 20, Color.WHITE.getRGB(), ARIEL);
             c.drawText("Moths/hr: " + f.format(mothsPerHour), 10, y += 20, Color.WHITE.getRGB(), ARIEL);

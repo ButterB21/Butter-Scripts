@@ -35,90 +35,50 @@ public class HandleBank extends Task {
     public static final String[] BANK_NAMES = {"Bank", "Chest", "Bank booth", "Grand Exchange booth", "Bank counter", "Bank table", "Banker", "Bank chest"};
     public static final String[] BANK_ACTIONS = {"bank", "open", "use"};
     public static final Predicate<RSObject> BANK_QUERY = gameObject -> {
-        // if object has no name
-        if (gameObject.getName() == null) {
-            return false;
-        }
-        // has no interact options (eg. bank, open etc.)
-        if (gameObject.getActions() == null) {
-            return false;
-        }
-
-        if (Arrays.stream(BANK_NAMES).noneMatch(name -> name.equalsIgnoreCase(gameObject.getName()))) {
-            return false;
-        }
-
-        // if no actions contain bank or open
-        if (Arrays.stream(gameObject.getActions()).noneMatch(action -> Arrays.stream(BANK_ACTIONS).anyMatch(bankAction -> bankAction.equalsIgnoreCase(action)))) {
-            return false;
-        }
-        // final check is if the object is reachable
+        if (gameObject.getName() == null) return false;
+        if (gameObject.getActions() == null) return false;
+        if (Arrays.stream(BANK_NAMES).noneMatch(name -> name.equalsIgnoreCase(gameObject.getName()))) return false;
+        if (Arrays.stream(gameObject.getActions()).noneMatch(action -> Arrays.stream(BANK_ACTIONS).anyMatch(bankAction -> bankAction.equalsIgnoreCase(action)))) return false;
         return gameObject.canReach();
     };
 
     @Override
     public boolean activate() {
-        script.log(HandleBank.class, "Handle Bank task check...");
-
-        // Never run HandleBank in Only Catch mode
         if ("Only Catch (No bank)".equalsIgnoreCase(ui.getSelectedMethod())) {
             bankTask = false;
-            script.log(HandleBank.class, "Only Catch mode - banking disabled.");
             return false;
         }
-
-        if (script.getWidgetManager().getBank().isVisible()) {
-            return true;
-        }
-
-        if (!bankTask) {
-            script.log(HandleBank.class, "Bank task is already set to false.");
-            return false;
-        }
-
-        if (activateRestocking) {
-            return true;
-        }
+        if (script.getWidgetManager().getBank().isVisible()) return true;
+        if (!bankTask) return false;
+        if (activateRestocking) return true;
 
         WorldPosition myPosition = script.getWorldPosition();
-        if (myPosition == null) {
-            script.log(HandleBank.class, "Cannot get player position!");
-            return false;
-        }
+        if (myPosition == null) return false;
 
         if (jarsAvailable() > 0) {
-            script.log(HandleBank.class, "Jars available - switching back to catch mode");
             catchMothTask = true;
             bankTask = false;
             return false;
         }
 
         MothData mothType = MothData.fromUI(ui);
-        boolean inMothRegion = mothType.getMothRegion() == myPosition.getRegionID();
+        // CHANGE: multi-region check
+        boolean inMothRegion = mothType.isInMothRegion(myPosition);
         boolean inBankRegion = mothType.getBankRegion() == myPosition.getRegionID();
 
-        if (inMothRegion || inBankRegion) {
-            script.log(HandleBank.class, "Need banking and in appropriate region - activating HandleBank");
-            return true;
-        }
+        if (inMothRegion || inBankRegion) return true;
 
         if (mothType == MothData.SUNLIGHT_MOTH) {
             walkToArea(mothType.getMothArea());
-            script.log(HandleBank.class, "Not in the proper area! Walking to moth area...");
             return false;
         }
-
-        script.log(HandleBank.class, "Not in appropriate region for banking");
         return false;
     }
 
     @Override
     public void execute() {
         WorldPosition myPosition = script.getWorldPosition();
-        if (myPosition == null) {
-            script.log(HandleBank.class, "Cannot get player position!");
-            return;
-        }
+        if (myPosition == null) return;
 
         if (script.getWidgetManager().getBank().isVisible()) {
             handleBank();
@@ -128,148 +88,69 @@ public class HandleBank extends Task {
         mothType = MothData.fromUI(ui);
         if (jarsAvailable() <= 0) {
             if (activateRestocking) {
-                //check for coins
-                script.log(HandleBank.class, "No jars in inventory, ending HandleBank task...");
                 bankTask = false;
                 return;
             }
             if (mothType == MothData.MOONLIGHT_MOTH) {
                 WorldPosition myPos = script.getWorldPosition();
-                if (myPos == null) {
-                    return;
-                }
-
+                if (myPos == null) return;
                 if (mothType.getBankRegion() != myPos.getRegionID()) {
                     RSObject stairs = script.getObjectManager().getClosestObject("Stairs");
-                    if (stairs == null) {
-                        script.log(HandleBank.class, "Stairs obj is null!");
-                        return;
-                    }
-
-                    if (!stairs.interact("Climb-up")) {
-                        script.log(HandleBank.class, "Failed to interact with stairs to go up!");
-                        return;
-                    }
-
-                    boolean climbedStairs = script.pollFramesHuman(() -> {
+                    if (stairs == null) return;
+                    if (!stairs.interact("Climb-up")) return;
+                    boolean climbed = script.pollFramesHuman(() -> {
                         WorldPosition pos = script.getWorldPosition();
-                        if (pos == null) {
-                            script.log(HandleBank.class, "Position is null!");
-                            return false;
-                        }
-                        if (mothType.getBankRegion() != pos.getRegionID()) {
-                            script.log(HandleBank.class, "Player not in bank region!");
-                            return false;
-                        }
-                        return true;
+                        return pos != null && mothType.getBankRegion() == pos.getRegionID();
                     }, RandomUtils.uniformRandom(16000, 22000));
-
-                    if (!climbedStairs) {
-                        script.log(HandleBank.class, "Failed to climb stairs.");
-                        return;
-                    }
+                    if (!climbed) return;
                 }
-            } else if (mothType == MothData.BLACK_WARLOCK || mothType == MothData.RUBY_HARVEST) {
+            } else if (mothType == MothData.BLACK_WARLOCK
+                    || mothType == MothData.RUBY_HARVEST) {
                 if (!insideGuildArea.contains(myPosition)) {
-                    script.log(HandleBank.class, "Player not in guild area. Walking to guild area...");
-
                     RectangleArea guildDoorArea = new RectangleArea(1246, 3715, 5, 7, 0);
-                    if (!walkToArea(guildDoorArea)) {
-                        script.log(HandleBank.class, "Not in guild door area");
-                        return;
-                    }
-
-                    script.log(HandleBank.class, "Getting door...");
-                    RSObject guildDoor = script.getObjectManager().getClosestObject("Door");
-                    if (guildDoor == null) {
-                        script.log(HandleBank.class, "Guild door object is null!");
-                        return;
-                    }
-
-                    if (!guildDoor.interact("Open")) {
-                        script.log(HandleBank.class, "Failed to interact with guild door!");
-                        return;
-                    }
-
-                    // Wait for player to move through the door
-                    boolean movedThroughDoor = script.pollFramesHuman(() -> {
+                    if (!walkToArea(guildDoorArea)) return;
+                    RSObject door = script.getObjectManager().getClosestObject("Door");
+                    if (door == null) return;
+                    if (!door.interact("Open")) return;
+                    boolean moved = script.pollFramesHuman(() -> {
                         WorldPosition pos = script.getWorldPosition();
                         return insideGuildArea.contains(pos);
                     }, RandomUtils.uniformRandom(15000, 20000));
-                    if (!movedThroughDoor) {
-                        script.log(HandleBank.class, "Failed to move through door, timing out!");
-                        return;
-                    }
+                    if (!moved) return;
                 }
             }
         }
 
-        if (!walkToArea(mothType.getBankArea())) {
-            script.log(HandleBank.class, "Not in bank area.");
-            return;
-        }
-
-        if (!openBank()) {
-            script.log(HandleBank.class, "Failed to open bank!");
-            return;
-        }
-
-        if (!handleBank()) {
-            script.log(HandleBank.class, "Failed to handle bank!");
-            return;
-        }
-
-        script.log(HandleBank.class, "Handle Bank task done...");
+        if (!walkToArea(mothType.getBankArea())) return;
+        if (!openBank()) return;
+        if (!handleBank()) return;
     }
 
     private int jarsAvailable() {
-        ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
-
-        if (inventorySnapshot == null) {
-            script.log(HandleBank.class, "Inventory is null!");
-            return -1;
-        }
-        return inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+        ItemGroupResult inv = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
+        if (inv == null) return -1;
+        return inv.getAmount(ItemID.BUTTERFLY_JAR);
     }
 
     private boolean openBank() {
-        script.log(HandleBank.class, "Opening bank...");
-
         List<RSObject> banksFound = script.getObjectManager().getObjects(BANK_QUERY);
-        if (banksFound.isEmpty()) {
-            script.log(HandleBank.class, "No bank found nearby!");
-            return false;
-        }
-
+        if (banksFound.isEmpty()) return false;
         RSObject bank = (RSObject) script.getUtils().getClosest(banksFound);
-        if (!bank.interact(BANK_ACTIONS)) {
-            script.log(HandleBank.class, "Failed to interact with bank object: " + bank.getName());
-            return false;
-        }
-
-        return script.pollFramesHuman(() -> script.getWidgetManager().getBank().isVisible(), RandomUtils.uniformRandom(10000, 15000));
+        if (!bank.interact(BANK_ACTIONS)) return false;
+        return script.pollFramesHuman(() -> script.getWidgetManager().getBank().isVisible(),
+                RandomUtils.uniformRandom(10000, 15000));
     }
 
     private boolean handleBank() {
-        if (!script.getWidgetManager().getBank().isVisible()) {
-            script.log(HandleBank.class, "Bank is not visible!");
-            return false;
-        }
+        if (!script.getWidgetManager().getBank().isVisible()) return false;
 
-        if (!script.getWidgetManager().getBank().depositAll(Set.of(ItemID.COINS_995))) {
-            script.log(HandleBank.class, "Failed to deposit");
-            return false;
-        }
+        if (!script.getWidgetManager().getBank().depositAll(Set.of(ItemID.COINS_995))) return false;
 
         ItemGroupResult bankSnapShot = script.getWidgetManager().getBank().search(Set.of(ItemID.BUTTERFLY_JAR));
-        if (bankSnapShot == null) {
-            script.log(HandleBank.class, "Cannot get bank snapshot!");
-            return false;
-        }
+        if (bankSnapShot == null) return false;
 
         if (ui.getSelectedMethod().equalsIgnoreCase("Only Buy & Bank Jars")) {
             if (jarsBought >= ui.restockAmount) {
-                script.log(HandleBank.class, "Finished restocking! Stopping script.");
                 script.getWidgetManager().getLogoutTab().logout();
                 script.stop();
             }
@@ -280,46 +161,36 @@ public class HandleBank extends Task {
 
         if (activateRestocking) {
             if (bankSnapShot.getAmount(ItemID.BUTTERFLY_JAR) >= ui.getRestockAmount()) {
-                script.log(HandleBank.class, "Finished restocking!");
                 activateRestocking = false;
             }
-            script.log(HandleBank.class, "Current jars left to buy: " + (ui.getRestockAmount() - bankSnapShot.getAmount(ItemID.BUTTERFLY_JAR)));
             script.getWidgetManager().getBank().close();
             return true;
         }
 
         if (bankSnapShot.getAmount(ItemID.BUTTERFLY_JAR) <= 27) {
-            // Check if user has restocking enabled
             if (!ui.isRestocking()) {
-                script.log(HandleBank.class, "No butterfly jars in the bank! Stopping script.");
                 script.getWidgetManager().getBank().close();
                 script.getWidgetManager().getLogoutTab().logout();
                 script.stop();
                 return false;
             }
-            script.log(HandleBank.class, "Restocking is enabled!");
             activateRestocking = true;
             script.getWidgetManager().getBank().close();
             return true;
         }
 
-        script.log(HandleBank.class, "Withdrawing butterfly jars from bank...");
         script.getWidgetManager().getBank().withdraw(ItemID.BUTTERFLY_JAR, Integer.MAX_VALUE);
         script.getWidgetManager().getBank().close();
         return true;
     }
 
-    private boolean walkToArea(Area bankArea) {
-        script.log(HandleBank.class, "Walking to area...");
-
+    private boolean walkToArea(Area area) {
+        script.log(HandleBank.class, "Walking to  area: " + area);
         WalkConfig.Builder builder = new WalkConfig.Builder();
         builder.breakCondition(() -> {
-            WorldPosition currentPosition = script.getWorldPosition();
-            if (currentPosition == null) {
-                return false;
-            }
-            return bankArea.contains(currentPosition);
+            WorldPosition cur = script.getWorldPosition();
+            return cur != null && area.contains(cur);
         });
-        return script.getWalker().walkTo(bankArea.getRandomPosition(), builder.build());
+        return script.getWalker().walkTo(area.getRandomPosition(), builder.build());
     }
 }

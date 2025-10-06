@@ -21,48 +21,40 @@ public class UI extends VBox {
     private CheckBox combinedMothsCheckBox;
     private CheckBox restockCheckBox;
     private Spinner<Integer> restockAmountSpinner;
-    private HBox restockContainer; // Container for restock controls
-
-    // Row containers for consistent alignment
+    private HBox restockContainer;
     private HBox methodRow;
     private HBox mothTypeRow;
 
     private ComboBox<String> locationComboBox;
     private HBox locationContainer;
 
-    // Buy & Bank location (only for "Only Buy & Bank Jars")
     private ComboBox<String> buyBankLocationCombo;
     private HBox buyBankLocationRow;
 
-    // Labels we reuse in rows
     private Label mothTypeLabel;
 
     private boolean isCombinedSelected = false;
 
-    // Variables for task usage
     public String selectedMethod = "Catch & Bank";
     public int selectedMothItemId = ItemID.MOONLIGHT_MOTH;
-    public boolean isRestocking = false; // Only used for "Catch Moths" with Moonlight/Sunlight
-    public int restockAmount = 50; // Default and mandatory for "Only Buy & Bank Jars"
+    public boolean isRestocking = false;
+    public int restockAmount = 50;
     public boolean catchBothWarlockAndHarvest = false;
 
-    // Bank preference (UI-only enforcement when "Only Buy & Bank Jars" is selected)
     private static final String PREF_BANK_LOCATION = "preferredBank";
     private static final String BANK_HUNTERS_GUILD = "HuntersGuild";
     private static final String BANK_FARMING_GUILD = "FarmingGuild";
     private static final String BANK_NEAREST = "Nearest";
     public String preferredBank = BANK_NEAREST;
 
-    // Locations (strings only, used for Ruby Harvest)
     private static final String LOCATION_FARMING_GUILD = "Farming Guild";
     private static final String LOCATION_LANDS_END = "Land's End";
+    private static final String LOCATION_ALDARIN = "Aldarin";
 
-    // Buy & Bank selectable locations (labels only)
     private static final String BUYBANK_LOC_HUNTERS_GUILD = "Hunter's Guild";
-    private static final String BUYBANK_LOC_NEW = "Nardah"; // your other shop label
+    private static final String BUYBANK_LOC_NEW = "Nardah";
     public String selectedBuyBankLocation = BUYBANK_LOC_HUNTERS_GUILD;
 
-    // Define your moth ItemIDs array
     private static final int[] MOTH_TYPE_IDS = new int[] {
             ItemID.MOONLIGHT_MOTH,
             ItemID.SUNLIGHT_MOTH,
@@ -70,33 +62,29 @@ public class UI extends VBox {
             ItemID.RUBY_HARVEST
     };
 
-    // Preferences keys
     private static final String PREF_METHOD = "selectedMethod";
     private static final String PREF_MOTH_TYPE = "selectedMothType";
-    private static final String PREF_RESTOCK = "isRestocking"; // Only for "Catch Moths"
+    private static final String PREF_RESTOCK = "isRestocking";
     private static final String PREF_RESTOCK_AMOUNT = "restockAmount";
     private static final String PREF_COMBINED = "catchBothWarlockAndHarvest";
-    private static final String PREF_LOCATION = "selectedLocation"; // Ruby catch location
-    private static final String PREF_BUYBANK_LOCATION = "buyBankLocation"; // Buy&Bank location
+    private static final String PREF_LOCATION = "selectedLocation";
+    private static final String PREF_BUYBANK_LOCATION = "buyBankLocation";
 
-    // Labels for methods to avoid typos
     private static final String MODE_CATCH_MOTHS = "Catch & Bank";
     private static final String MODE_ONLY_BUY_AND_BANK = "Only Buy & Bank Jars";
     private static final String MODE_ONLY_CATCH = "Only Catch (No bank)";
 
-    // Selected location (persisted) for Ruby Harvest catching
     public String selectedLocation = LOCATION_FARMING_GUILD;
 
     public UI(ScriptCore core) {
         this.core = core;
         setStyle("-fx-background-color: #636E72; -fx-padding: 15; -fx-spacing: 15; -fx-alignment: center");
         setPrefWidth(400);
-        setMaxHeight(400); // keep original
+        setMaxHeight(400);
 
         Label titleLabel = new Label("Moth Catcher Setup");
         titleLabel.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;");
 
-        // Method row (label + combo inline)
         Label methodLabel = new Label("Select Method:");
         methodLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12;");
         methodLabel.setMinWidth(LABEL_COL_WIDTH);
@@ -113,7 +101,6 @@ public class UI extends VBox {
         methodRow.getChildren().addAll(methodLabel, methodComboBox);
         methodRow.managedProperty().bind(methodRow.visibleProperty());
 
-        // Moth type row (label + combo inline)
         mothTypeLabel = new Label("Select Moth Type:");
         mothTypeLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12;");
         mothTypeLabel.setMinWidth(LABEL_COL_WIDTH);
@@ -129,7 +116,6 @@ public class UI extends VBox {
         mothTypeRow.getChildren().addAll(mothTypeLabel, mothTypeComboBox);
         mothTypeRow.managedProperty().bind(mothTypeRow.visibleProperty());
 
-        // Catching location row (only for Ruby Harvest)
         Label locationLabel = new Label("Location:");
         locationLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12;");
         locationLabel.setMinWidth(LABEL_COL_WIDTH);
@@ -137,7 +123,7 @@ public class UI extends VBox {
         locationLabel.setAlignment(Pos.CENTER_RIGHT);
 
         locationComboBox = new ComboBox<>();
-        locationComboBox.getItems().addAll(LOCATION_FARMING_GUILD, LOCATION_LANDS_END);
+        locationComboBox.getItems().addAll(LOCATION_FARMING_GUILD, LOCATION_LANDS_END, LOCATION_ALDARIN);
         locationComboBox.setPrefWidth(250);
         locationComboBox.setPromptText("Select Location");
         locationComboBox.getSelectionModel().select(LOCATION_FARMING_GUILD);
@@ -148,7 +134,6 @@ public class UI extends VBox {
         locationContainer.setVisible(false);
         locationContainer.managedProperty().bind(locationContainer.visibleProperty());
 
-        // Buy & Bank location row (only in that mode)
         Label buyBankLocationLabel = new Label("Buy & Bank Location:");
         buyBankLocationLabel.setStyle("-fx-text-fill: white; -fx-font-size: 12;");
         buyBankLocationLabel.setMinWidth(LABEL_COL_WIDTH);
@@ -167,13 +152,11 @@ public class UI extends VBox {
         buyBankLocationRow.setVisible(false);
         buyBankLocationRow.managedProperty().bind(buyBankLocationRow.visibleProperty());
 
-        // Combined moths checkbox (initially hidden)
         combinedMothsCheckBox = new CheckBox("Catch Both Black Warlock & Ruby Harvest");
         combinedMothsCheckBox.setStyle("-fx-text-fill: white; -fx-font-size: 12;");
         combinedMothsCheckBox.setVisible(false);
         combinedMothsCheckBox.managedProperty().bind(combinedMothsCheckBox.visibleProperty());
 
-        // Restock container
         restockContainer = new HBox(10);
         restockContainer.setAlignment(Pos.CENTER_LEFT);
 
@@ -191,14 +174,13 @@ public class UI extends VBox {
         restockContainer.getChildren().addAll(restockCheckBox, restockAmountSpinner);
         restockContainer.managedProperty().bind(restockContainer.visibleProperty());
 
-        // Method selection listener
-        methodComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (MODE_CATCH_MOTHS.equals(newVal)) {
+        methodComboBox.valueProperty().addListener((obs, o, n) -> {
+            if (MODE_CATCH_MOTHS.equals(n)) {
                 mothTypeRow.setVisible(true);
                 mothTypeComboBox.setDisable(false);
                 buyBankLocationRow.setVisible(false);
                 updateOptionsVisibility();
-            } else if (MODE_ONLY_CATCH.equals(newVal)) {
+            } else if (MODE_ONLY_CATCH.equals(n)) {
                 mothTypeRow.setVisible(true);
                 mothTypeComboBox.setDisable(false);
                 combinedMothsCheckBox.setVisible(false);
@@ -207,21 +189,14 @@ public class UI extends VBox {
                 restockAmountSpinner.setDisable(true);
                 buyBankLocationRow.setVisible(false);
                 updateOptionsVisibility();
-            } else { // MODE_ONLY_BUY_AND_BANK
-                // Hide moth type row entirely in Buy&Bank mode (removes the gap)
+            } else {
                 mothTypeRow.setVisible(false);
-
-                // Clear combined selection state to avoid stale flags influencing logic
                 isCombinedSelected = false;
                 combinedMothsCheckBox.setSelected(false);
                 combinedMothsCheckBox.setVisible(false);
                 catchBothWarlockAndHarvest = false;
-
-                locationContainer.setVisible(false); // hide catching location
-
-                // Show Buy&Bank row
+                locationContainer.setVisible(false);
                 buyBankLocationRow.setVisible(true);
-
                 restockContainer.setVisible(true);
                 restockCheckBox.setVisible(false);
                 restockAmountSpinner.setDisable(false);
@@ -230,47 +205,38 @@ public class UI extends VBox {
             updateRestockVisibility();
         });
 
-        // Moth type selection listener
-        mothTypeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+        mothTypeComboBox.valueProperty().addListener((obs, o, n) -> {
             updateOptionsVisibility();
             updateRestockVisibility();
         });
 
-        // Catching location selection listener
-        locationComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            selectedLocation = newVal != null ? newVal : LOCATION_FARMING_GUILD;
+        locationComboBox.valueProperty().addListener((obs, o, n) -> {
+            selectedLocation = n != null ? n : LOCATION_FARMING_GUILD;
         });
 
-        // Buy&Bank location selection listener
-        buyBankLocationCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
-            selectedBuyBankLocation = newVal != null ? newVal : BUYBANK_LOC_HUNTERS_GUILD;
+        buyBankLocationCombo.valueProperty().addListener((obs, o, n) -> {
+            selectedBuyBankLocation = n != null ? n : BUYBANK_LOC_HUNTERS_GUILD;
         });
 
-        // Combined checkbox
-        combinedMothsCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
-            isCombinedSelected = newVal;
-            mothTypeComboBox.setDisable(newVal);
+        combinedMothsCheckBox.selectedProperty().addListener((obs, o, n) -> {
+            isCombinedSelected = n;
+            mothTypeComboBox.setDisable(n);
             updateRestockVisibility();
         });
 
-        // Restock checkbox
-        restockCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
-            isRestocking = newVal;
-            restockAmountSpinner.setDisable(!newVal);
-            if (newVal) {
-                restockAmount = restockAmountSpinner.getValue();
-            }
+        restockCheckBox.selectedProperty().addListener((obs, o, n) -> {
+            isRestocking = n;
+            restockAmountSpinner.setDisable(!n);
+            if (n) restockAmount = restockAmountSpinner.getValue();
         });
 
-        // Restock spinner
-        restockAmountSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
+        restockAmountSpinner.valueProperty().addListener((obs, o, n) -> {
             if (isRestocking || MODE_ONLY_BUY_AND_BANK.equals(selectedMethod)) {
-                restockAmount = newVal;
+                restockAmount = n;
                 savePreferences();
             }
         });
 
-        // Confirm button
         Button confirmButton = new Button("Confirm");
         confirmButton.setPrefWidth(120);
         confirmButton.setStyle("-fx-font-size: 14; -fx-background-color: #4c5459; -fx-text-fill: white; -fx-background-radius: 5;");
@@ -278,7 +244,6 @@ public class UI extends VBox {
             selectedMethod = methodComboBox.getValue() != null ? methodComboBox.getValue() : MODE_CATCH_MOTHS;
 
             if (MODE_ONLY_BUY_AND_BANK.equals(selectedMethod)) {
-                // Force Hunters Guild bank in this mode
                 preferredBank = BANK_HUNTERS_GUILD;
                 core.log("UI: Forcing bank to Hunter's Guild for 'Only Buy & Bank Jars'.");
                 Preferences prefs = Preferences.userNodeForPackage(UI.class);
@@ -288,12 +253,11 @@ public class UI extends VBox {
                 catchBothWarlockAndHarvest = false;
             } else if (isCombinedSelected) {
                 catchBothWarlockAndHarvest = true;
-                selectedMothItemId = ItemID.BLACK_WARLOCK; // Default to one of them
+                selectedMothItemId = ItemID.BLACK_WARLOCK;
             } else if (mothTypeComboBox.getValue() != null && mothTypeComboBox.getValue() == ItemID.SUNLIGHT_MOTH) {
                 core.log("UI: Sunlight moth selected");
                 selectedMothItemId = ItemID.SUNLIGHT_MOTH;
             } else {
-                core.log("UI: Moonlight/Ruby/Warlock selection");
                 selectedMothItemId = mothTypeComboBox.getValue() != null ? mothTypeComboBox.getValue() : ItemID.MOONLIGHT_MOTH;
             }
 
@@ -319,7 +283,6 @@ public class UI extends VBox {
             ((Stage) getScene().getWindow()).close();
         });
 
-        // Reset button
         Button resetButton = new Button("Reset");
         resetButton.setPrefWidth(120);
         resetButton.setStyle("-fx-font-size: 14; -fx-background-color: #4c5459; -fx-text-fill: white; -fx-background-radius: 5;");
@@ -367,10 +330,7 @@ public class UI extends VBox {
                 buttonContainer
         );
 
-        // Load saved preferences
         loadPreferences();
-
-        // Enforce bank policy once after loading
         applyBankPolicyForCurrentMethod();
     }
 
@@ -378,31 +338,25 @@ public class UI extends VBox {
         String method = methodComboBox.getValue();
         Integer mothType = mothTypeComboBox.getValue();
 
-        // Show/hide catching location picker: only when catching and Ruby Harvest is selected
         boolean showLocation = (MODE_CATCH_MOTHS.equals(method) || MODE_ONLY_CATCH.equals(method))
                 && mothType != null && mothType == ItemID.RUBY_HARVEST;
         locationContainer.setVisible(showLocation);
 
-        // Show/hide Buy&Bank location row (only in that mode)
         buyBankLocationRow.setVisible(MODE_ONLY_BUY_AND_BANK.equals(method));
 
         if (MODE_CATCH_MOTHS.equals(method) || MODE_ONLY_CATCH.equals(method)) {
-            // Show combined option only when Black Warlock is selected
             boolean showCombined = (mothType != null) && (mothType == ItemID.BLACK_WARLOCK);
             combinedMothsCheckBox.setVisible(showCombined);
-
             if (!showCombined) {
                 combinedMothsCheckBox.setSelected(false);
                 isCombinedSelected = false;
                 mothTypeComboBox.setDisable(false);
             }
-
             mothTypeRow.setVisible(true);
         } else {
             mothTypeRow.setVisible(false);
             combinedMothsCheckBox.setVisible(false);
         }
-
         updateRestockVisibility();
     }
 
@@ -425,9 +379,7 @@ public class UI extends VBox {
     }
 
     private boolean isRestockingAllowed() {
-        if (isCombinedSelected) {
-            return false; // No restocking for combined option
-        }
+        if (isCombinedSelected) return false;
         Integer mothType = mothTypeComboBox.getValue();
         return mothType != null &&
                 (mothType == ItemID.MOONLIGHT_MOTH || mothType == ItemID.SUNLIGHT_MOTH);
@@ -455,6 +407,9 @@ public class UI extends VBox {
         selectedMothItemId = savedMothType;
 
         selectedLocation = prefs.get(PREF_LOCATION, LOCATION_FARMING_GUILD);
+        if (!locationComboBox.getItems().contains(selectedLocation)) {
+            selectedLocation = LOCATION_FARMING_GUILD;
+        }
         locationComboBox.getSelectionModel().select(selectedLocation);
 
         selectedBuyBankLocation = prefs.get(PREF_BUYBANK_LOCATION, BUYBANK_LOC_HUNTERS_GUILD);
@@ -506,7 +461,6 @@ public class UI extends VBox {
         }
     }
 
-    // Public helpers for runtime to query
     public boolean forceHuntersGuildBank() {
         return MODE_ONLY_BUY_AND_BANK.equals(selectedMethod);
     }
@@ -515,61 +469,34 @@ public class UI extends VBox {
         return forceHuntersGuildBank() ? BANK_HUNTERS_GUILD : preferredBank;
     }
 
-    public String getSelectedMethod() {
-        return selectedMethod;
-    }
-
-    public int getSelectedMothItemId() {
-        return selectedMothItemId;
-    }
-
-    public boolean isRestocking() {
-        return isRestocking;
-    }
-
-    public int getRestockAmount() {
-        return restockAmount;
-    }
-
-    public boolean isCatchingBothWarlockAndHarvest() {
-        return catchBothWarlockAndHarvest;
-    }
-
-    public boolean isCatchingBlackWarlock() {
-        return selectedMothItemId == ItemID.BLACK_WARLOCK || catchBothWarlockAndHarvest;
-    }
-
-    public boolean isCatchingRubyHarvest() {
-        return selectedMothItemId == ItemID.RUBY_HARVEST || catchBothWarlockAndHarvest;
-    }
-
-    public boolean isCatchingMoonlightMoth() {
-        return selectedMothItemId == ItemID.MOONLIGHT_MOTH;
-    }
-
-    public boolean isCatchingSunlightMoth() {
-        return selectedMothItemId == ItemID.SUNLIGHT_MOTH;
-    }
+    public String getSelectedMethod() { return selectedMethod; }
+    public int getSelectedMothItemId() { return selectedMothItemId; }
+    public boolean isRestocking() { return isRestocking; }
+    public int getRestockAmount() { return restockAmount; }
+    public boolean isCatchingBothWarlockAndHarvest() { return catchBothWarlockAndHarvest; }
+    public boolean isCatchingBlackWarlock() { return selectedMothItemId == ItemID.BLACK_WARLOCK || catchBothWarlockAndHarvest; }
+    public boolean isCatchingRubyHarvest() { return selectedMothItemId == ItemID.RUBY_HARVEST || catchBothWarlockAndHarvest; }
+    public boolean isCatchingMoonlightMoth() { return selectedMothItemId == ItemID.MOONLIGHT_MOTH; }
+    public boolean isCatchingSunlightMoth() { return selectedMothItemId == ItemID.SUNLIGHT_MOTH; }
+    public boolean isOnlyCatchMode() { return MODE_ONLY_CATCH.equals(selectedMethod); }
 
     public int[] getMothItemIdsToCatch() {
         if (catchBothWarlockAndHarvest) {
             return new int[]{ItemID.BLACK_WARLOCK, ItemID.RUBY_HARVEST};
-        } else {
-            return new int[]{selectedMothItemId};
         }
+        return new int[]{selectedMothItemId};
     }
 
-    public boolean isOnlyCatchMode() {
-        return MODE_ONLY_CATCH.equals(selectedMethod);
-    }
-
-    // Minimal helpers for Ruby Harvest location (catching)
     public boolean isRubyHarvestAtLandsEnd() {
         return selectedMothItemId == ItemID.RUBY_HARVEST && LOCATION_LANDS_END.equals(selectedLocation);
     }
     public boolean isRubyHarvestAtFarmingGuild() {
         return selectedMothItemId == ItemID.RUBY_HARVEST && LOCATION_FARMING_GUILD.equals(selectedLocation);
     }
+    public boolean isRubyHarvestAtAldarin() {
+        return selectedMothItemId == ItemID.RUBY_HARVEST && LOCATION_ALDARIN.equals(selectedLocation);
+    }
+
     public String getSelectedLocation() {
         return selectedLocation;
     }

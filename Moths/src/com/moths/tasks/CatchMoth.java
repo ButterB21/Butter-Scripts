@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static moths.Moths.*;
 
-
 public class CatchMoth extends Task {
 
     public CatchMoth(Script script, UI ui) {
@@ -49,67 +48,46 @@ public class CatchMoth extends Task {
 
     @Override
     public boolean activate() {
-        if (!catchMothTask) {
-            script.log(CatchMoth.class, "catchMothTask is false - not activating.");
-            return false;
-        }
-
+        if (!catchMothTask) return false;
         if (!isCatchEnabledMode()) {
-            script.log(CatchMoth.class, "Not in catch moths mode");
             catchMothTask = false;
             return false;
         }
-
-        if (isCatchOnlyMode()) {
-            script.log(CatchMoth.class, "In catch only mode - skipping jar check");
-            return true;
-        }
-
+        if (isCatchOnlyMode()) return true;
         if (!hasJarsAvailable()) {
-            script.log(CatchMoth.class, "No jars available - switching to banking mode");
             catchMothTask = false;
             bankTask = true;
             return false;
         }
-
-        script.log(CatchMoth.class, "All conditions met - activating CatchMoth task");
         return true;
     }
 
     @Override
     public void execute() {
-        // Minimal change: Resolve Ruby Harvest location from UI (Farming Guild vs Land's End)
-        MothData mothType = resolveMothTypeFromUI();
+        MothData mothType = resolveMothTypeFromUI(); // CHANGE: now resolves Aldarin too
 
         if (!isCatchOnlyMode()) {
             ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
-            if (inventorySnapshot == null) {
-                script.log(CatchMoth.class, "Cannot get inventory snapshot");
-                return;
-            }
-
-            script.log(CatchMoth.class, "inventory snapshot: " + inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR) + " jars remaining");
+            if (inventorySnapshot == null) return;
             currButterFlyJarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
         } else {
-                script.getWidgetManager().getTabManager().closeContainer();
-                script.log(CatchMoth.class, "closing inventory");
+            script.getWidgetManager().getTabManager().closeContainer();
         }
 
         WorldPosition myPosition = script.getWorldPosition();
-        if (myPosition == null) {
-            script.log(CatchMoth.class, "Position is null!");
-            return;
-        }
+        if (myPosition == null) return;
 
-        if (mothType.getMothRegion() != myPosition.getRegionID()) {
+        // CHANGE: Multi-region support
+        if (!mothType.isInMothRegion(myPosition)) {
             returnToMothRegion(mothType);
             return;
         }
 
         if (!mothType.getMothArea().contains(myPosition)) {
-            script.log(CatchMoth.class, "Player is not in the moth wander area!");
-            if (mothType == MothData.BLACK_WARLOCK || mothType == MothData.RUBY_HARVEST || mothType == MothData.RUBY_HARVEST_KOUREND) {
-                script.log(CatchMoth.class, "Returning to area for Black Warlock/Ruby Harvest");
+            if (mothType == MothData.BLACK_WARLOCK
+                    || mothType == MothData.RUBY_HARVEST
+                    || mothType == MothData.RUBY_HARVEST_KOUREND
+                    || mothType == MothData.RUBY_HARVEST_ALDARIN) { // ADDED
                 returnToMothRegion(mothType);
                 return;
             }
@@ -118,39 +96,23 @@ public class CatchMoth extends Task {
         }
 
         List<WorldPosition> validPositions = butterFlyPositions(mothType.getMothArea());
-        if (validPositions == null || validPositions.isEmpty()) {
-            script.log(CatchMoth.class, "no valid positions found for moths!");
-            return;
-        }
-
-        script.log(CatchMoth.class, "Finding closest moth to catch...");
+        if (validPositions == null || validPositions.isEmpty()) return;
 
         WorldPosition closestMoth = script.getWorldPosition().getClosest(validPositions);
         Polygon poly = script.getSceneProjector().getTileCube(closestMoth, 120);
-        if (poly == null) {
-            script.log(CatchMoth.class, "Polygon for closest moth is null at position: " + closestMoth);
-            return;
-        }
+        if (poly == null) return;
 
         Rectangle mothBounds = script.getPixelAnalyzer().getHighlightBounds(poly, mothType.getMothClusterPixels());
-        if (mothBounds == null) {
-            script.log(CatchMoth.class, "No highlight bounds found for moth at position: " + closestMoth);
-            return;
-        }
+        if (mothBounds == null) return;
 
-        if (!script.getFinger().tap(mothBounds.getCenter(), "catch") ) {
-            script.log(CatchMoth.class, "Failed to tap on moth at position: " + closestMoth);
-            return;
-        }
+        if (!script.getFinger().tap(mothBounds.getCenter(), "catch")) return;
 
         AtomicInteger animatingTimeout = new AtomicInteger(RandomUtils.uniformRandom(500));
-        script.log(CatchMoth.class, "Initial Animating timeout: " + animatingTimeout.get());
         Timer animatingTimer = new Timer();
         script.pollFramesHuman(() -> {
             if (isCatchOnlyMode()) {
                 if (!script.getPixelAnalyzer().isPlayerAnimating(0.5)) {
                     if (animatingTimer.timeElapsed() > animatingTimeout.get()) {
-                        script.log(CatchMoth.class, "Animating timeout hit: " + animatingTimeout.get());
                         animatingTimeout.set(RandomUtils.uniformRandom(500));
                         mothsCaught++;
                         return true;
@@ -160,164 +122,103 @@ public class CatchMoth extends Task {
                 animatingTimer.reset();
             } else {
                 ItemGroupResult postInvSnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
-                if (postInvSnapshot == null) {
-                    script.log(CatchMoth.class, "Current inventory snapshot is null!");
-                    return false;
-                }
-
-                int postButterFlyJarCount = postInvSnapshot.getAmount(ItemID.BUTTERFLY_JAR);
-                if (postButterFlyJarCount < currButterFlyJarCount) {
-                    script.log(CatchMoth.class, "Successfully caught a moth! Current jar count: " + postButterFlyJarCount + " jars");
+                if (postInvSnapshot == null) return false;
+                int postCount = postInvSnapshot.getAmount(ItemID.BUTTERFLY_JAR);
+                if (postCount < currButterFlyJarCount) {
                     mothsCaught++;
                     return true;
                 }
-                script.log(CatchMoth.class, "Attempting to catch moth..." + postButterFlyJarCount + " jars");
             }
-
             return false;
         }, RandomUtils.uniformRandom(9000, 13000));
-
     }
 
-    // Map UI selection to MothData, only branching for Ruby Harvest (Land's End vs Farming Guild)
+    // CHANGE: Added Aldarin resolution path
     private MothData resolveMothTypeFromUI() {
         if (ui.getSelectedMothItemId() == ItemID.RUBY_HARVEST) {
-            if (ui.isRubyHarvestAtLandsEnd()) {
-                script.log(CatchMoth.class, "UI selected Ruby Harvest at Land's End (Kourend).");
-                return MothData.RUBY_HARVEST_KOUREND;
-            } else {
-                script.log(CatchMoth.class, "UI selected Ruby Harvest at Farming Guild.");
-                return MothData.RUBY_HARVEST; // existing Farming Guild entry
-            }
+            if (ui.isRubyHarvestAtLandsEnd()) return MothData.RUBY_HARVEST_KOUREND;
+            if (ui.isRubyHarvestAtAldarin()) return MothData.RUBY_HARVEST_ALDARIN; // ADDED
+            return MothData.RUBY_HARVEST;
         }
-        // Fall back to your existing mapping for other types/modes
         return MothData.fromUI(ui);
     }
 
     private boolean hasJarsAvailable() {
-        ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
-
-        if (inventorySnapshot == null) {
-            script.log(CatchMoth.class, "Cannot get inventory snapshot");
-            return false;
-        }
-
-        int jarCount = inventorySnapshot.getAmount(ItemID.BUTTERFLY_JAR);
-        return jarCount > 0;
+        ItemGroupResult inv = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
+        if (inv == null) return false;
+        return inv.getAmount(ItemID.BUTTERFLY_JAR) > 0;
     }
 
-    private void walkToArea(Area mothWanderArea) {
-        WalkConfig.Builder builder = new WalkConfig.Builder();
-        builder.breakCondition(() -> {
-            WorldPosition myPosition = script.getWorldPosition();
-            if (myPosition == null) {
-                return false;
-            }
-            return mothWanderArea.contains(myPosition);
+    private void walkToArea(Area area) {
+        WalkConfig.Builder b = new WalkConfig.Builder();
+        b.breakCondition(() -> {
+            WorldPosition p = script.getWorldPosition();
+            return p != null && area.contains(p);
         });
-
-        script.getWalker().walkTo(mothWanderArea.getRandomPosition(), builder.build());
+        script.getWalker().walkTo(area.getRandomPosition(), b.build());
     }
 
-    private List<WorldPosition> butterFlyPositions(Area mothWanderArea) {
-        List<WorldPosition> searchArea = mothWanderArea.getAllWorldPositions();
-        UIResultList<WorldPosition> playerPositions = script.getWidgetManager().getMinimap().getPlayerPositions();
+    private List<WorldPosition> butterFlyPositions(Area area) {
+        List<WorldPosition> search = area.getAllWorldPositions();
+        UIResultList<WorldPosition> players = script.getWidgetManager().getMinimap().getPlayerPositions();
+        if (search.isEmpty()) return null;
 
-        if (searchArea.isEmpty()) {
-            script.log(CatchMoth.class, "No surrounding positions found in the search area.");
-            return null;
-        }
-
-        if (playerPositions.isFound()) {
-            script.log(CatchMoth.class, "Player position found!");
-
-            if (playerPositions.asList().stream().anyMatch(playerPos -> searchArea.contains(playerPos))) {
-                script.log(CatchMoth.class, "Player found in moth area! Hopping worlds...");
+        if (players.isFound()) {
+            if (players.asList().stream().anyMatch(search::contains)) {
                 script.getProfileManager().forceHop();
                 return null;
             }
-            script.log(CatchMoth.class, "Player(s) found, but none in moth area.");
         }
 
-        List<WorldPosition> validMothPositions = new ArrayList<>();
-        searchArea.forEach(position -> {
-            Polygon poly = script.getSceneProjector().getTilePoly(position);
-            if (poly == null) {
-                script.log(CatchMoth.class, "Polygon inside the search area is null.");
-                return;
-            }
-
-
-            if (script.getWorldPosition().distanceTo(position) > 20) {
-                script.log(CatchMoth.class, "Moth is too far away, looking for a closer option...");
-                return;
-            }
-
+        List<WorldPosition> valid = new ArrayList<>();
+        search.forEach(pos -> {
+            Polygon poly = script.getSceneProjector().getTilePoly(pos);
+            if (poly == null) return;
+            if (script.getWorldPosition().distanceTo(pos) > 20) return;
             if (script.getPixelAnalyzer().getHighlightBounds(poly, HIGHLIGHT_PIXEL) != null) {
-                script.log(CatchMoth.class, "Highlighted Moth found.");
-                validMothPositions.add(position);
+                valid.add(pos);
             }
         });
-        return validMothPositions;
+        return valid;
     }
 
     private boolean returnToMothRegion(MothData moth){
-        script.log(CatchMoth.class, "Returning to moth area/region...");
-        WorldPosition myPosition = script.getWorldPosition();
-        if (myPosition == null) {
-            script.log(CatchMoth.class, "Player position is null!");
-            return false;
+        WorldPosition my = script.getWorldPosition();
+        if (my == null) return false;
+
+        // Multi-region just path to area
+        if (moth.isMultiRegion()) {
+            walkToArea(moth.getMothArea());
+            return true;
         }
 
         if (moth == MothData.MOONLIGHT_MOTH) {
-            RSObject stairObj = script.getObjectManager().getClosestObject("Stairs");
-            if (stairObj == null) {
-                script.log(CatchMoth.class, "No stairs found to return to moth area!");
-                return false;
-            }
-
-            if (stairObj.interact("Climb-down")) {
+            RSObject stairs = script.getObjectManager().getClosestObject("Stairs");
+            if (stairs == null) return false;
+            if (stairs.interact("Climb-down")) {
                 script.pollFramesHuman(() -> {
-                    WorldPosition position = script.getWorldPosition();
-                    if (position == null) {
-                        script.log(CatchMoth.class, "Position is null.");
-                        return false;
-                    }
-                    return moth.getMothRegion() == position.getRegionID();
+                    WorldPosition p = script.getWorldPosition();
+                    return moth.isInMothRegion(p);
                 }, RandomUtils.uniformRandom(10000, 15000));
             }
-        } else if (moth == MothData.BLACK_WARLOCK || moth == MothData.RUBY_HARVEST || moth == MothData.RUBY_HARVEST_KOUREND) {
-            if (insideGuildArea.contains(myPosition)) {
-                script.log(CatchMoth.class, "Player is inside guild, exiting...");
-                RSObject guildDoor = script.getObjectManager().getClosestObject("Door");
-                if (guildDoor == null) {
-                    script.log(CatchMoth.class, "Guild door object is null!");
-                    return false;
-                }
-
-                if (!guildDoor.interact("Open")) {
-                    script.log(CatchMoth.class, "Failed to interact with guild door!");
-                    return false;
-                }
-
-                // Wait for player to move through the door
-                boolean exitedGuild = script.pollFramesHuman(() -> {
-                    WorldPosition pos = script.getWorldPosition();
-                    return pos != null && !insideGuildArea.contains(pos);
+        } else if (moth == MothData.BLACK_WARLOCK
+                || moth == MothData.RUBY_HARVEST
+                || moth == MothData.RUBY_HARVEST_KOUREND
+                || moth == MothData.RUBY_HARVEST_ALDARIN) { // ADDED
+            if (insideGuildArea.contains(my)) {
+                RSObject door = script.getObjectManager().getClosestObject("Door");
+                if (door == null) return false;
+                if (!door.interact("Open")) return false;
+                boolean exited = script.pollFramesHuman(() -> {
+                    WorldPosition p = script.getWorldPosition();
+                    return p != null && !insideGuildArea.contains(p);
                 }, RandomUtils.uniformRandom(15000, 20000));
-                if (!exitedGuild) {
-                    script.log(CatchMoth.class, "Failed to move through door, timing out!");
-                    return false;
-                }
+                if (!exited) return false;
             }
-
-            script.log(CatchMoth.class, "Exiting guild area...");
-            if (!insideGuildArea.contains(myPosition)) {
-                script.log(CatchMoth.class, "Not inside guild area. Walking to moth area...");
+            if (!insideGuildArea.contains(my)) {
                 walkToArea(moth.getMothArea());
             }
         } else {
-            // For Sunlight Moths
             walkToArea(moth.getMothArea());
         }
         return true;
