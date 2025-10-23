@@ -92,7 +92,7 @@ public enum MothData {
                     new SearchablePixel(-11584468, new SingleThresholdComparator(1), ColorModel.HSL),
                     new SearchablePixel(-14286849, new SingleThresholdComparator(1), ColorModel.HSL)},
             5165,
-            new int[]{5421},
+            new int[]{5421, 5166},
             5421,
             new RectangleArea(1396, 2923, 5, 6, 0));
 

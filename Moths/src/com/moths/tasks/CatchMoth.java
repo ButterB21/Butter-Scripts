@@ -87,10 +87,11 @@ public class CatchMoth extends Task {
             if (mothType == MothData.BLACK_WARLOCK
                     || mothType == MothData.RUBY_HARVEST
                     || mothType == MothData.RUBY_HARVEST_KOUREND
-                    || mothType == MothData.RUBY_HARVEST_ALDARIN) { // ADDED
+                    || mothType == MothData.RUBY_HARVEST_ALDARIN) {
                 returnToMothRegion(mothType);
                 return;
             }
+            script.log(CatchMoth.class, "Does nto contain my position!");
             walkToArea(mothType.getMothArea());
             return;
         }
@@ -137,7 +138,7 @@ public class CatchMoth extends Task {
     private MothData resolveMothTypeFromUI() {
         if (ui.getSelectedMothItemId() == ItemID.RUBY_HARVEST) {
             if (ui.isRubyHarvestAtLandsEnd()) return MothData.RUBY_HARVEST_KOUREND;
-            if (ui.isRubyHarvestAtAldarin()) return MothData.RUBY_HARVEST_ALDARIN; // ADDED
+            if (ui.isRubyHarvestAtAldarin()) return MothData.RUBY_HARVEST_ALDARIN;
             return MothData.RUBY_HARVEST;
         }
         return MothData.fromUI(ui);
@@ -183,18 +184,22 @@ public class CatchMoth extends Task {
     }
 
     private boolean returnToMothRegion(MothData moth){
-        WorldPosition my = script.getWorldPosition();
-        if (my == null) return false;
+        WorldPosition playerPos = script.getWorldPosition();
+        if (playerPos == null) {
+            return false;
+        }
 
-        // Multi-region just path to area
         if (moth.isMultiRegion()) {
+            script.log(CatchMoth.class, "Multi region moth!");
             walkToArea(moth.getMothArea());
             return true;
         }
 
         if (moth == MothData.MOONLIGHT_MOTH) {
-            RSObject stairs = script.getObjectManager().getClosestObject("Stairs");
-            if (stairs == null) return false;
+            RSObject stairs = script.getObjectManager().getClosestObject(playerPos,"Stairs");
+            if (stairs == null) {
+                return false;
+            }
             if (stairs.interact("Climb-down")) {
                 script.pollFramesHuman(() -> {
                     WorldPosition p = script.getWorldPosition();
@@ -205,8 +210,8 @@ public class CatchMoth extends Task {
                 || moth == MothData.RUBY_HARVEST
                 || moth == MothData.RUBY_HARVEST_KOUREND
                 || moth == MothData.RUBY_HARVEST_ALDARIN) { // ADDED
-            if (insideGuildArea.contains(my)) {
-                RSObject door = script.getObjectManager().getClosestObject("Door");
+            if (insideGuildArea.contains(playerPos)) {
+                RSObject door = script.getObjectManager().getClosestObject(playerPos,"Door");
                 if (door == null) return false;
                 if (!door.interact("Open")) return false;
                 boolean exited = script.pollFramesHuman(() -> {
@@ -215,10 +220,14 @@ public class CatchMoth extends Task {
                 }, RandomUtils.uniformRandom(15000, 20000));
                 if (!exited) return false;
             }
-            if (!insideGuildArea.contains(my)) {
+            if (!insideGuildArea.contains(playerPos)) {
+                script.log(CatchMoth.class, "Not inside guild area!");
+
                 walkToArea(moth.getMothArea());
             }
         } else {
+            script.log(CatchMoth.class, "afeter guild area!");
+
             walkToArea(moth.getMothArea());
         }
         return true;

@@ -5,6 +5,7 @@ import com.osmb.api.script.ScriptDefinition;
 import com.osmb.api.script.SkillCategory;
 import com.osmb.api.visual.drawing.Canvas;
 import javafx.scene.Scene;
+import moths.data.JarShopData;
 import moths.data.MothData;
 import moths.tasks.BuyJars;
 import moths.tasks.CatchMoth;
@@ -21,7 +22,7 @@ import java.util.List;
 @ScriptDefinition(
         name = "Moths",
         description = "A script for catching & banking moths.",
-        version = 2.55,
+        version = 2.56,
         author = "Butter",
         skillCategory = SkillCategory.HUNTER)
 public class Moths extends Script {
@@ -84,19 +85,18 @@ public class Moths extends Script {
 
     @Override
     public int[] regionsToPrioritise() {
-        // CHANGE: Multi-region support
-        MothData data = MothData.fromUI(ui);
-        int[] mothRegions = data.getAllMothRegions();
-        int bankRegion = data.getBankRegion();
-        boolean already = false;
-        for (int r : mothRegions) {
-            if (r == bankRegion) { already = true; break; }
+        if (MODE_ONLY_BUY_AND_BANK.equalsIgnoreCase(ui.getSelectedMethod())) {
+            JarShopData shop = JarShopData.fromUI(ui);
+
+            int shopRegion = shop.getShopRegion();
+            int bankRegion = MothData.fromUI(ui).getBankRegion();
+            if (shopRegion == bankRegion) {
+                return new int[]{shopRegion};
+            }
+            return new int[]{shopRegion, bankRegion};
         }
-        if (already) return mothRegions;
-        int[] combined = new int[mothRegions.length + 1];
-        System.arraycopy(mothRegions, 0, combined, 0, mothRegions.length);
-        combined[mothRegions.length] = bankRegion;
-        return combined;
+
+        return new int[]{MothData.fromUI(ui).getMothRegion(), MothData.fromUI(ui).getBankRegion()};
     }
 
     @Override

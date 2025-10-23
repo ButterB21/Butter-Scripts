@@ -3,6 +3,7 @@ package moths.tasks;
 import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemID;
 import com.osmb.api.item.ItemSearchResult;
+import com.osmb.api.location.area.Area;
 import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.script.Script;
@@ -15,6 +16,7 @@ import com.osmb.api.visual.color.ColorModel;
 import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
 import moths.components.ShopInterface;
+import moths.data.JarShopData;
 import moths.ui.UI;
 
 import java.util.Set;
@@ -23,15 +25,9 @@ import static moths.Moths.*;
 
 public class BuyJars extends Task {
 
-    private static final SearchablePixel[] NPC_PIXEL_CLUSTER = new SearchablePixel[]{
-            new SearchablePixel(-12566996, new SingleThresholdComparator(2), ColorModel.HSL),
-            new SearchablePixel(-13884650, new SingleThresholdComparator(2), ColorModel.HSL),
-            new SearchablePixel(-10202045, new SingleThresholdComparator(2), ColorModel.HSL),
-            new SearchablePixel(-14286849, new SingleThresholdComparator(2), ColorModel.HSL),
-    };
     private final UI ui;
-    private final static RectangleArea NPC_AREA = new RectangleArea(1559, 3055, 6, 7, 0);
     ShopInterface shopInterface = new ShopInterface(script);
+    private JarShopData shopData;
 
     public BuyJars(Script script, UI ui) {
         super(script);
@@ -46,6 +42,8 @@ public class BuyJars extends Task {
 
     @Override
     public void execute() {
+        shopData = JarShopData.fromUI(ui);
+
         ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.COINS_995));
         if (inventorySnapshot == null) {
             script.log(HandleBank.class, "Inventory is null!");
@@ -54,6 +52,12 @@ public class BuyJars extends Task {
 
         if (inventorySnapshot.isFull()) {
             script.log(BuyJars.class, "Invy full, ending BuyJars task...");
+            if ("Only Buy & Bank Jars".equalsIgnoreCase(ui.getSelectedMethod())) {
+                bankTask = true;
+                script.log(BuyJars.class, "Buy&Bank mode: heading to bank to deposit jars.");
+                return;
+            }
+
             catchMothTask = true;
 //            bankTask = true;
             activateRestocking = false;
@@ -69,13 +73,14 @@ public class BuyJars extends Task {
                 return;
             }
 
-            if (NPC_AREA.contains(position)) {
+            Area npcArea = shopData.getNpcArea();
+            if (npcArea.contains(position)) {
                 if (!openShop()) {
                     script.log(BuyJars.class, "Shop still not visible!");
                     return;
                 }
             } else {
-                walkToArea(NPC_AREA);
+                walkToArea(npcArea);
             }
         }
         script.log(BuyJars.class, "Jars bought so far: " + jarsBought);
@@ -100,15 +105,21 @@ public class BuyJars extends Task {
             script.log(BuyJars.class, "No positions found for npc!");
             return false;
         }
+        SearchablePixel[] npcPixels = shopData.getNpcPixels();
+        Area npcArea = shopData.getNpcArea();
 
         for (WorldPosition position : searchArea) {
+            if (!npcArea.contains(position)) {
+                continue;
+            }
+
             Polygon poly = script.getSceneProjector().getTileCube(position, 130);
             if (poly == null) {
                 script.log(BuyJars.class, "Poly is null, checking next...");
                 continue;
             }
 
-            Rectangle validBounds = script.getPixelAnalyzer().getHighlightBounds(poly, NPC_PIXEL_CLUSTER);
+            Rectangle validBounds = script.getPixelAnalyzer().getHighlightBounds(poly.getResized(0.8), npcPixels);
             if (validBounds == null) {
                 script.log(BuyJars.class, "npc position is null, checking next position...");
                 continue;
@@ -174,16 +185,15 @@ public class BuyJars extends Task {
         return false;
     }
 
-    private boolean walkToArea(RectangleArea area) {
+    private boolean walkToArea(Area area) {
         script.log(BuyJars.class, "Walking to area...");
-
         WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(3);
         builder.breakCondition(() -> {
             WorldPosition currentPosition = script.getWorldPosition();
             if (currentPosition == null) {
                 return false;
             }
-            return area.contains(currentPosition);
+            return area.contains(currentPosition) || area.distanceTo(currentPosition) <= RandomUtils.uniformRandom(2,5);
         });
         return script.getWalker().walkTo(area.getRandomPosition(), builder.build());
     }
