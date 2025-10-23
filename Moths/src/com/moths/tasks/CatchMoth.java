@@ -9,6 +9,7 @@ import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
 import com.osmb.api.shape.Rectangle;
+import com.osmb.api.ui.component.chatbox.ChatboxComponent;
 import com.osmb.api.utils.RandomUtils;
 import com.osmb.api.utils.UIResultList;
 import com.osmb.api.utils.timing.Timer;
@@ -48,12 +49,19 @@ public class CatchMoth extends Task {
 
     @Override
     public boolean activate() {
-        if (!catchMothTask) return false;
+        if (!catchMothTask) {
+            return false;
+        }
+
         if (!isCatchEnabledMode()) {
             catchMothTask = false;
             return false;
         }
-        if (isCatchOnlyMode()) return true;
+
+        if (isCatchOnlyMode()) {
+            return true;
+        }
+
         if (!hasJarsAvailable()) {
             catchMothTask = false;
             bankTask = true;
@@ -64,7 +72,7 @@ public class CatchMoth extends Task {
 
     @Override
     public void execute() {
-        MothData mothType = resolveMothTypeFromUI(); // CHANGE: now resolves Aldarin too
+        MothData mothType = resolveMothTypeFromUI();
 
         if (!isCatchOnlyMode()) {
             ItemGroupResult inventorySnapshot = script.getWidgetManager().getInventory().search(Set.of(ItemID.BUTTERFLY_JAR));
@@ -200,6 +208,13 @@ public class CatchMoth extends Task {
             if (stairs == null) {
                 return false;
             }
+
+            Polygon stairsPoly = stairs.getConvexHull();
+            if (stairsPoly == null || script.getWidgetManager().insideGameScreenFactor(stairsPoly, List.of(ChatboxComponent.class)) < 0.3) {
+                script.log(CatchMoth.class, "stairsPoly is null!");
+                return false;
+            }
+
             if (stairs.interact("Climb-down")) {
                 script.pollFramesHuman(() -> {
                     WorldPosition p = script.getWorldPosition();

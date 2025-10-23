@@ -74,14 +74,21 @@ public class BuyJars extends Task {
             }
 
             Area npcArea = shopData.getNpcArea();
-            if (npcArea.contains(position)) {
-                if (!openShop()) {
-                    script.log(BuyJars.class, "Shop still not visible!");
-                    return;
-                }
-            } else {
+
+            if (!openShop()) {
+                script.log(BuyJars.class, "Shop not visible!");
                 walkToArea(npcArea);
+                return;
             }
+
+//            if (npcArea.contains(position)) {
+//                if (!openShop()) {
+//                    script.log(BuyJars.class, "Shop still not visible!");
+//                    return;
+//                }
+//            } else {
+//                walkToArea(npcArea);
+//            }
         }
         script.log(BuyJars.class, "Jars bought so far: " + jarsBought);
         script.log(BuyJars.class, "End of BuyJars task.");

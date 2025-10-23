@@ -46,6 +46,7 @@ public class HandleBank extends Task {
 
     @Override
     public boolean activate() {
+        script.log(HandleBank.class, "banktask value: " + bankTask);
         if ("Only Catch (No bank)".equalsIgnoreCase(ui.getSelectedMethod())) {
             bankTask = false;
             return false;
