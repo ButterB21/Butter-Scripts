@@ -34,6 +34,22 @@ public class MoonlightAntelope extends Script {
     private ItemGroupResult inventorySnapshot = null;
     private Integer logsInInventory = null;
 
+    private final Predicate<RSObject> interactableRoots = roots -> {
+        if (roots.getName() == null) {
+            return false;
+        }
+
+        if (roots.getActions() == null) {
+            return false;
+        }
+
+        if (Arrays.stream(roots.getActions()).noneMatch(action -> "Take-log".equalsIgnoreCase(action))) {
+            return false;
+        }
+
+        return roots.canReach();
+    };
+
     @Override
     public void onStart() {
         ITEM_IDS_TO_RECOGNIZE.addAll(LOG_IDS);
@@ -85,10 +101,10 @@ public class MoonlightAntelope extends Script {
             }
 
             if (!hasLogs()) {
+                log(MoonlightAntelope.class, "Getting logs...");
                 getLogs();
                 return 0;
             }
-
 
             if (!trapIsSet()) {
                 setUpTrap();
@@ -101,7 +117,13 @@ public class MoonlightAntelope extends Script {
     }
 
     private void climbDownStairs() {
-        RSObject stairs = getObjectManager().getClosestObject("Stairs");
+        WorldPosition playerPos = getWorldPosition();
+        if (playerPos == null) {
+            log(MoonlightAntelope.class, "Player pos is null!");
+            return;
+        }
+
+        RSObject stairs = getObjectManager().getClosestObject(playerPos,"Stairs");
         if (stairs == null) {
             log(MoonlightAntelope.class, "Cannot find stairs!");
             return;
@@ -109,14 +131,19 @@ public class MoonlightAntelope extends Script {
 
         if (stairs.interact("Climb-down")) {
             pollFramesHuman(() -> {
-                WorldPosition playerPos = getWorldPosition();
-                return playerPos.getRegionID() == MOONLIGHT_REGION;
+                WorldPosition pos = getWorldPosition();
+                return pos.getRegionID() == MOONLIGHT_REGION;
             }, RandomUtils.uniformRandom(10000, 15000));
         }
     }
 
     private void climbUpStairs() {
-        RSObject stairs = getObjectManager().getClosestObject("Stairs");
+        WorldPosition playerPos = getWorldPosition();
+        if (playerPos == null) {
+            log(MoonlightAntelope.class, "Player pos is null!");
+            return;
+        }
+        RSObject stairs = getObjectManager().getClosestObject(playerPos,"Stairs");
         if (stairs == null) {
             return;
         }
@@ -183,21 +210,6 @@ public class MoonlightAntelope extends Script {
         return true;
     }
 
-    private final Predicate<RSObject> interactableRoots = roots -> {
-        if (roots.getName() == null) {
-            return false;
-        }
-
-        if (roots.getActions() == null) {
-            return false;
-        }
-
-        if (Arrays.stream(roots.getActions()).noneMatch(action -> "Take-log".equalsIgnoreCase(action))) {
-            return false;
-        }
-
-        return roots.canReach();
-    };
 
     private boolean getLogs() {
         List<RSObject> roots = getObjectManager().getObjects(interactableRoots);
@@ -268,7 +280,29 @@ public class MoonlightAntelope extends Script {
                 return;
             }
 
+            pitsFound.forEach(pit -> {
+               if (!pit.isInteractableOnScreen()) {
+                   return;
+               }
 
+
+               if (!pit.interact("Set-trap")) {
+                   log(MoonlightAntelope.class, "Failed to set trap!");
+                   return;
+               }
+
+
+               pollFramesHuman(() -> {
+                   List<PixelAnalyzer.RespawnCircle> respawnCircles = getPixelAnalyzer().findRespawnCircleTypes(pit.getConvexHull().getBounds());
+                   if (respawnCircles == null || respawnCircles.isEmpty()) {
+                       log(MoonlightAntelope.class, "Setting trap...");
+                       return false;
+                   }
+
+                   log(MoonlightAntelope.class, "Trap set!");
+                   return true;
+               }, RandomUtils.uniformRandom(5000, 12000));
+            });
         }
 
     }
