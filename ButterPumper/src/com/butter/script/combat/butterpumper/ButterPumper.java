@@ -26,14 +26,14 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-@ScriptDefinition(name = "Butter Pumper", author = "Butter", version = 1.0, description = "Blast Furnace Pumper", skillCategory = SkillCategory.COMBAT)
+@ScriptDefinition(name = "Butter Pumper", author = "Butter", version = 1.1, description = "Blast Furnace Pumper", skillCategory = SkillCategory.COMBAT)
 
 public class ButterPumper extends Script {
     public ButterPumper(Object scriptCore) {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "1.0";
+    private final String scriptVersion = "1.1";
 
     private Timer playerAnimationTimer = new Timer();
     private Timer randomActionTimer = new Timer();
@@ -59,7 +59,7 @@ public class ButterPumper extends Script {
     @Override
     public void onStart() {
         log(ButterPumper.class, "Version" + scriptVersion);
-//        checkForUpdates();
+        checkForUpdates();
 
         UI ui = new UI(this);
         Scene scene = new Scene(ui);
@@ -93,7 +93,6 @@ public class ButterPumper extends Script {
         playerAnimationTimer.reset();
         lastXPGainedTimer.reset();
     }
-
 
     @Override
     public Map<SkillType, XPTracker> getXPTrackers() {
@@ -148,7 +147,7 @@ public class ButterPumper extends Script {
             } else {
                 strengthTracker = getXPTrackers().get(SkillType.STRENGTH);
                 log(ButterPumper.class, "Attempting to reacquire strength tracker...");
-                log(ButtonGroup.class, "Last xp gained: " + lastXPGainedTimer.timeElapsed() / 60_000 + " minutes ago");
+                log(ButtonGroup.class, "Last xp gained: " + lastXPGainedTimer.timeElapsed() / 1000 + "s");
             }
 
             // Check for no XP gained
@@ -412,23 +411,23 @@ public class ButterPumper extends Script {
         }
         return 0;
     }
-//
-//    private boolean checkForUpdates() {
-//        String latest = getLatestVersion();
-//
-//        if (latest == null) {
-//            log("VERSION", "⚠ Could not fetch latest version info.");
-//            return false;
-//        }
-//
-//        if (compareVersions(scriptVersion, latest) < 0) {
-//            log("VERSION", "❌ New version v" + latest + " found! Please update your script.");
-//            return true;
-//        }
-//
-//        log("SCRIPTVERSION", "✅ You are running the latest version (v" + scriptVersion + ").");
-//        return true;
-//    }
+
+    private boolean checkForUpdates() {
+        String latest = getLatestVersion("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/refs/heads/main/ButterPumper/src/com/butter/script/combat/butterpumper/ButterPumper.java");
+
+        if (latest == null) {
+            log("VERSION", "⚠ Could not fetch latest version info.");
+            return false;
+        }
+
+        if (compareVersions(scriptVersion, latest) < 0) {
+            log("VERSION", "❌ New version v" + latest + " found! Please update your script from github.");
+            return true;
+        }
+
+        log("SCRIPTVERSION", "✅ You are running the latest version (v" + scriptVersion + ").");
+        return true;
+    }
 
     private String getLatestVersion(String url) {
         try {
@@ -450,7 +449,7 @@ public class ButterPumper extends Script {
                 }
             }
         } catch (Exception e) {
-            log("VERSION", "⚠ Error fetching latest version: " + e.getMessage());
+            log("VERSION", "❌ ⚠ Error fetching latest version: " + e.getMessage());
         }
         return null;
     }
