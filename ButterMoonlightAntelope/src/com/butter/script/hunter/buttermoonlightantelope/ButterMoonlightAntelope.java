@@ -44,9 +44,9 @@ import static com.butter.script.hunter.buttermoonlightantelope.Constants.*;
 import static com.butter.script.hunter.buttermoonlightantelope.util.MovementUtils.*;
 
 @ScriptDefinition(
-        name = "Moonlight Antelope",
+        name = "Butter Moonlight Antelope",
         description =  "A script for catching & banking Moonlight Antelope antlers & meat.",
-        version = 0.1,
+        version = 1.0,
         author = "Butter",
         skillCategory = SkillCategory.HUNTER)
 public class ButterMoonlightAntelope extends Script {
@@ -232,16 +232,9 @@ public class ButterMoonlightAntelope extends Script {
             allowHopOrBreak = false;
             if (getProfileManager().isDueToHop() || getProfileManager().isDueToBreak() || getProfileManager().isDueToAFK()) {
                 log(ButterMoonlightAntelope.class, "Can hop/break value: " + allowHopOrBreak);
-                if (!playerInSafeArea(this)) {
-                    allowHopOrBreak = false;
-                    return 0;
+                if (playerInSafeArea(this)) {
+                    allowHopOrBreak = true;
                 }
-
-                if (TRAP_SAFE_AREA.stream().noneMatch(safeArea -> safeArea.contains(playerPosition))) {
-                    log(ButterMoonlightAntelope.class, "NOT safe area, proceeding with world hop/break...");
-                    return 0;
-                }
-                allowHopOrBreak = true;
                 return 0;
             }
 
