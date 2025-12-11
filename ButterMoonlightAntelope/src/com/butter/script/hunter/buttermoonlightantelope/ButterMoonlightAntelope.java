@@ -58,7 +58,6 @@ public class ButterMoonlightAntelope extends Script {
     private long scriptStartTime = 0;
     private static final java.awt.Font ARIAL = new java.awt.Font("Arial",java.awt.Font.BOLD, 14);
 
-
     private BankHandler bankHandler = null;
     private InventoryHandler inventoryHandler = null;
     private ItemGroupResult inventorySnapshot = null;
@@ -98,7 +97,6 @@ public class ButterMoonlightAntelope extends Script {
         return roots.canReach();
     };
 
-
     private static final MenuHook spikedPitHook = menuEntries -> {
         for (MenuEntry entry : menuEntries) {
             if (entry.getAction().equalsIgnoreCase("jump")) {
@@ -134,7 +132,6 @@ public class ButterMoonlightAntelope extends Script {
         return rsObject.canReach();
     };
 
-
     private static final MenuHook dismantleHook = menuEntries -> {
         for (MenuEntry entry : menuEntries) {
             if (entry.getAction().equalsIgnoreCase("dismantle")) {
@@ -146,6 +143,11 @@ public class ButterMoonlightAntelope extends Script {
 
     @Override
     public void onStart() {
+        log(getClass(), "Starting ButterMoonlightAntelope v" + scriptVersion);
+        if (!checkForUpdates()) {
+            stop();
+        }
+
         scriptStartTime = System.currentTimeMillis();
 
         UI ui = new UI();
@@ -1279,7 +1281,7 @@ public class ButterMoonlightAntelope extends Script {
     }
 
     private boolean checkForUpdates() {
-        String latest = getLatestVersion("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/refs/heads/main/MoonlightAntelope/src/com/butter/script/hunter/moonlightantelope/MoonlightAntelope.java");
+        String latest = getLatestVersion("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/main/ButterMoonlightAntelope/src/com/butter/script/hunter/buttermoonlightantelope/ButterMoonlightAntelope.java");
 
         if (latest == null) {
             log("VERSION", "⚠ Could not fetch latest version info.");
@@ -1288,7 +1290,7 @@ public class ButterMoonlightAntelope extends Script {
 
         if (compareVersions(scriptVersion, latest) < 0) {
             log("VERSION", "❌ New version v" + latest + " found! Please update your script from github.");
-            return true;
+            return false;
         }
 
         log("SCRIPTVERSION", "✅ You are running the latest version (v" + scriptVersion + ").");
