@@ -32,6 +32,15 @@ public enum Food {
         return name;
     }
 
+    public static Food getFood(int itemID) {
+        for (Food food : Food.values()) {
+            if (food.getItemID() == itemID) {
+                return food;
+            }
+        }
+        return null;
+    }
+
     public int getHealAmount() {
         return healAmount;
     }

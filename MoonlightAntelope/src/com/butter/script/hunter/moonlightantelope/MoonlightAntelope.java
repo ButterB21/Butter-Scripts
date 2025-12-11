@@ -1,5 +1,6 @@
 package com.butter.script.hunter.moonlightantelope;
 
+import com.butter.script.hunter.moonlightantelope.data.Food;
 import com.butter.script.hunter.moonlightantelope.handler.BankHandler;
 import com.butter.script.hunter.moonlightantelope.handler.InventoryHandler;
 import com.butter.script.hunter.moonlightantelope.ui.UI;
@@ -28,16 +29,22 @@ import com.osmb.api.utils.UIResult;
 import com.osmb.api.utils.UIResultList;
 import com.osmb.api.utils.timing.Timer;
 import com.osmb.api.visual.PixelAnalyzer;
+import com.osmb.api.visual.drawing.Canvas;
 import com.osmb.api.walker.WalkConfig;
 import javafx.scene.Scene;
 
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import static com.butter.script.hunter.moonlightantelope.Constants.*;
+import static com.butter.script.hunter.moonlightantelope.util.MovementUtils.*;
 
 @ScriptDefinition(
         name = "Moonlight Antelope",
@@ -51,6 +58,9 @@ public class MoonlightAntelope extends Script {
     }
 
     private final String scriptVersion = "0.1";
+    private long scriptStartTime = 0;
+    private static final java.awt.Font ARIAL = new java.awt.Font("Arial",java.awt.Font.BOLD, 14);
+
 
     private BankHandler bankHandler = null;
     private InventoryHandler inventoryHandler = null;
@@ -62,18 +72,22 @@ public class MoonlightAntelope extends Script {
 
     private int currNumLogs = 0;
     private int numAntelolpesCaught = 0;
-    private boolean dismantleForRespawnCircle = false;
+    public static boolean dismantleForRespawnCircle = false;
     private boolean isAntelopeCaught = false;
     private int randLogsNeeded = RandomUtils.uniformRandom(1, 3);
-    private boolean isInvyFull = false;
+    public static boolean isInvyFull = false;
+    public static int runEnergyThreshold = RandomUtils.uniformRandom(30, 60);
+
 
     // UI Options
     public static boolean shouldChiselAntlers = false;
-    public static final boolean isFoodEnabled = true;
+    public static boolean needsFood = false;
     public static int hpPctToEatAt = -1;
-    public static int selectedFoodItem = ItemID.JUG_OF_WINE;
+    public static int randomizedHPPctToEatAt = -1;
+    public static int selectedFoodItemID;
     private boolean allowHopOrBreak = true;
     public static int userHPLevel = -1;
+    public static Food selectedFood = null;
 
     private final Predicate<RSObject> interactableRoots = roots -> {
         if (roots.getName() == null || roots.getActions() == null) {
@@ -87,31 +101,10 @@ public class MoonlightAntelope extends Script {
         return roots.canReach();
     };
 
-    private static final Predicate<RSObject> pitObjQuery = rsObject -> {
-        if (rsObject.getName() == null || !rsObject.getName().equalsIgnoreCase("Pit")) {
-            return false;
-        }
-
-        if (rsObject.getActions() == null || rsObject.getActions().length == 0) {
-            return false;
-        }
-
-//        return rsObject.isInteractable();
-        return rsObject.canReach();
-    };
 
     private static final MenuHook spikedPitHook = menuEntries -> {
         for (MenuEntry entry : menuEntries) {
             if (entry.getAction().equalsIgnoreCase("jump")) {
-                return entry;
-            }
-        }
-        return null;
-    };
-
-    private static final MenuHook dismantleHook = menuEntries -> {
-        for (MenuEntry entry : menuEntries) {
-            if (entry.getAction().equalsIgnoreCase("dismantle")) {
                 return entry;
             }
         }
@@ -132,22 +125,58 @@ public class MoonlightAntelope extends Script {
         return null;
     };
 
+        public static final Predicate<RSObject> pitObjQuery = rsObject -> {
+        if (rsObject.getName() == null || !rsObject.getName().equalsIgnoreCase("Pit")) {
+            return false;
+        }
+
+        if (rsObject.getActions() == null || rsObject.getActions().length == 0) {
+            return false;
+        }
+
+        return rsObject.canReach();
+    };
+
+
+    private static final MenuHook dismantleHook = menuEntries -> {
+        for (MenuEntry entry : menuEntries) {
+            if (entry.getAction().equalsIgnoreCase("dismantle")) {
+                return entry;
+            }
+        }
+        return null;
+    };
+
     @Override
     public void onStart() {
+        scriptStartTime = System.currentTimeMillis();
+
         UI ui = new UI();
         Scene scene = ui.buildScene(this);
         getStageController().show(scene, "Settings", false);
+
         // Check user settings
-        log(MoonlightAntelope.class, "Selected Food: " + ui.getSelectedFood());
-        selectedFoodItem = ui.getSelectedFood();
+        selectedFoodItemID = ui.getSelectedFoodID();
         shouldChiselAntlers = ui.chisselAntlers();
         hpPctToEatAt = ui.getFoodEatPct();
+        randomizedHPPctToEatAt = hpPctToEatAt;
+        selectedFood = Food.getFood(selectedFoodItemID);
+        if (selectedFood == null) {
+            log(MoonlightAntelope.class, "Selected food is null! Stopping script.");
+            stop();
+            return;
+        }
+
+        log(MoonlightAntelope.class, "Selected Food: " + selectedFood.getName());
 
         ITEM_IDS_TO_RECOGNIZE.addAll(LOG_IDS);
         ITEM_IDS_TO_RECOGNIZE.addAll(ITEM_IDS_TO_DROP);
         ITEM_IDS_TO_RECOGNIZE.addAll(ITEM_IDS_TO_KEEP);
         ITEM_IDS_TO_RECOGNIZE.addAll(ITEM_IDS_TO_BANK);
-        ITEM_IDS_TO_RECOGNIZE.add(selectedFoodItem);
+
+        ITEM_IDS_TO_RECOGNIZE.add(selectedFoodItemID);
+        ITEM_IDS_TO_KEEP.add(selectedFoodItemID);
+        ITEM_IDS_TO_KEEP.addAll(LOG_IDS);
         this.bankHandler = new BankHandler(this);
         this.inventoryHandler = new InventoryHandler(this);
         currNumLogs = 0;
@@ -156,7 +185,9 @@ public class MoonlightAntelope extends Script {
     @Override
     public int poll() {
         if (userHPLevel < 10) {
-            userHPLevel = getWidgetManager().getSkillTab().getSkillLevel(SkillType.HITPOINTS).getLevel();
+            userHPLevel = getWidgetManager().getSkillTab().getSkillLevel(SkillType.HITPOINTS).getBoostedLevel();
+            log(MoonlightAntelope.class, "Base HP Level: " + getWidgetManager().getSkillTab().getSkillLevel(SkillType.HITPOINTS).getLevel());
+            log(MoonlightAntelope.class, "boosted level: " + getWidgetManager().getSkillTab().getSkillLevel(SkillType.HITPOINTS).getBoostedLevel());
             return 0;
         }
 
@@ -168,6 +199,7 @@ public class MoonlightAntelope extends Script {
 
         // Ensure player has: Teasing Stick/Hunter's spear, knife & chisel (optional)
         if (playerPosition.getRegionID() == BANK_REGION) {
+            allowHopOrBreak = true;
             if (getWidgetManager().getBank().isVisible()) {
                 bankHandler.handleBank();
                 return 0;
@@ -179,7 +211,7 @@ public class MoonlightAntelope extends Script {
                 return 0;
             }
 
-            if (inventorySnapshot.contains(selectedFoodItem)) {
+            if (inventorySnapshot.contains(selectedFoodItemID) && isFoodNeeded()) {
                 eatFood();
                 return 0;
             }
@@ -189,32 +221,51 @@ public class MoonlightAntelope extends Script {
                 return 0;
             }
 
-            if (inventorySnapshot.containsAny(ITEM_IDS_TO_BANK)) {
+            if (inventorySnapshot.containsAny(ITEM_IDS_TO_BANK) || isFoodNeeded()) {
                 bankHandler.openBank();
                 return 0;
             }
 
             currNumLogs = inventorySnapshot.getAmount(LOG_IDS);
-            climbDownStairs();
+            climbDownStairs(this);
             return 0;
         } else if (playerPosition.getRegionID() == MOONLIGHT_REGION) {
+            allowHopOrBreak = false;
             if (getProfileManager().isDueToHop() || getProfileManager().isDueToBreak() || getProfileManager().isDueToAFK()) {
-                if (!playerInSafeArea()) {
+                log(MoonlightAntelope.class, "Can hop/break value: " + allowHopOrBreak);
+                if (!playerInSafeArea(this)) {
                     allowHopOrBreak = false;
+                    return 0;
+                }
+
+                if (TRAP_SAFE_AREA.stream().noneMatch(safeArea -> safeArea.contains(playerPosition))) {
+                    log(MoonlightAntelope.class, "NOT safe area, proceeding with world hop/break...");
                     return 0;
                 }
                 allowHopOrBreak = true;
                 return 0;
             }
 
-            if (getWidgetManager().getMinimapOrbs().getHitpointsPercentage() < 0.3) {
-                log(MoonlightAntelope.class, "HP is low! Banking...");
+            if (isFoodNeeded()) {
+                log(MoonlightAntelope.class, "HP is low!");
+                inventorySnapshot = getWidgetManager().getInventory().search(ITEM_IDS_TO_RECOGNIZE);
+                if (inventorySnapshot == null) {
+                    log(MoonlightAntelope.class, "Inventory is null!");
+                    return 0;
+                }
+
+                if (inventorySnapshot.contains(selectedFoodItemID)) {
+                    log(MoonlightAntelope.class, "Eating food to restore HP...");
+                    eatFood();
+                    return 0;
+                }
+
                 inventoryHandler.climbUpStairs();
                 return 0;
             }
 
             if (!MOONLIGHT_HUNT_AREA.contains(playerPosition)) {
-                walkToArea(MOONLIGHT_HUNT_AREA);
+                walkToArea(this, MOONLIGHT_HUNT_AREA);
                 return 0;
             }
 
@@ -226,7 +277,7 @@ public class MoonlightAntelope extends Script {
 
             if (foreignPlayerPositions.isFound()) {
                 log(MoonlightAntelope.class, "Player detected on minimap! Switching worlds...");
-                if (playerInSafeArea()) {
+                if (playerInSafeArea(this)) {
                     getProfileManager().forceHop();
                 }
                 return 0;
@@ -252,7 +303,7 @@ public class MoonlightAntelope extends Script {
 
             if (isInvyFull) {
                 log(MoonlightAntelope.class, "Handling inventory...");
-                if (!playerInSafeArea()) {
+                if (!playerInSafeArea(this)) {
                     return 0;
                 }
                 inventoryHandler.handleInventory();
@@ -277,9 +328,14 @@ public class MoonlightAntelope extends Script {
 
                 // Filter out green respawn circles
                 activePits.entrySet().removeIf(pit -> pit.getValue().getType() == PixelAnalyzer.RespawnCircle.Type.GREEN);
+                if (activePits.isEmpty()) {
+                    log(MoonlightAntelope.class, "Active pits is empty!");
+                    return 0;
+                }
+
                 List<Rectangle> antelopePositions = getAntelopePositions();
                 if (antelopePositions.isEmpty()) {
-                    log(MoonlightAntelope.class, "No moonlight antelope positions found!");
+                    log(MoonlightAntelope.class, "Moonlight Antelopes are NOT in a valid teasing area");
                     return 0;
                 }
 
@@ -304,7 +360,7 @@ public class MoonlightAntelope extends Script {
                 }
 
                 if (getWidgetManager().insideGameScreenFactor(activeTrapPoly, List.of(ChatboxComponent.class)) < 0.4 || !activeTrap.isInteractableOnScreen()) {
-                    walkToObject(activeTrap);
+                    walkToObject(this, activeTrap);
                 }
 
                 WorldPosition currPos = getWorldPosition();
@@ -315,14 +371,14 @@ public class MoonlightAntelope extends Script {
 
                 if (!VALID_PLAYER_POS.contains(currPos)) {
                     log(MoonlightAntelope.class, "Player not in valid position to trap antelope! Walking to valid area...");
-                    walkToArea(VALID_PLAYER_POS);
+                    walkToArea(this, VALID_PLAYER_POS);
                 }
 
                 trapAntelope(activeTrap);
                 return 0;
             }
 
-            if (currNumLogs < randLogsNeeded) {
+            if (currNumLogs < randLogsNeeded && currNumLogs == 0) {
                 log(MoonlightAntelope.class, "currNumLogs: " + currNumLogs + ". randLogsNeeded: " + randLogsNeeded + " Getting more logs!");
                 getLogs(randLogsNeeded);
             }
@@ -335,11 +391,91 @@ public class MoonlightAntelope extends Script {
 
             drawAvailablePits(pits);
             if (setTrap(pits)) {
+                enableRunEnergy(this);
                 log(MoonlightAntelope.class, "Trap set!");
                 return 0;
             }
+        } else if (playerPosition.getRegionID() == 12850) {
+            log(MoonlightAntelope.class, "You died sucka! Wear a Ring of life next time?");
+            stop();
         }
         return 0;
+    }
+
+    @Override
+    public void onPaint(Canvas c) {
+        long elapsedTime = System.currentTimeMillis() - scriptStartTime;
+        String runtime = formatRuntime(elapsedTime);
+        int antelopesCaught = numAntelolpesCaught;
+        int boltsBanked = antelopesCaught * 12;
+
+        // Calculate per hour rates
+        double hoursElapsed = elapsedTime / 3600000.0; // Convert ms to hours
+        int antelopesPerHour = hoursElapsed > 0 ? (int) (antelopesCaught / hoursElapsed) : 0;
+        int boltsPerHour = hoursElapsed > 0 ? (int) (boltsBanked / hoursElapsed) : 0;
+
+        final int panelX = 8;
+        final int panelY = 68;
+        final int panelW = 250;
+        final int topPad = 20;
+        final int bottomPad = 10;
+        final int lineGap = 16;
+
+        final int shadow = 0x15000000;   // ~8% black shadow
+        final int bg     = 0x40000000;   // ~25% black (neutral, not navy)
+        final int border = 0x50FFFFFF;   // ~31% white border
+
+        Font titleFont = new Font("SansSerif", Font.BOLD, 13);
+        Font labelFont = new Font("SansSerif", Font.PLAIN, 12);
+        Font valueFont = new Font("SansSerif", Font.BOLD, 12);
+
+        int panelH = topPad + (6 * lineGap) + bottomPad;
+
+        // Background
+        c.fillRect(panelX + 2, panelY + 2, panelW, panelH, shadow);
+        c.fillRect(panelX, panelY, panelW, panelH, bg);
+        c.drawRect(panelX, panelY, panelW, panelH, border);
+
+        String titleName = "ButterMoonlightAntelope";
+        String titleVersion = " v" + scriptVersion;
+
+        int nameWidth = c.getFontMetrics(titleFont).stringWidth(titleName);
+        int versionWidth = c.getFontMetrics(titleFont).stringWidth(titleVersion);
+
+        int totalTitleWidth = nameWidth + versionWidth;
+        int titleX = panelX + (panelW - totalTitleWidth) / 2;
+        int y = panelY + topPad;
+
+        c.drawText(titleName, titleX, y, 0xFFFFFFFF, titleFont);
+
+        int versionX = titleX + nameWidth;
+        c.drawText(titleVersion, versionX, y, 0xFF00FF00, titleFont);
+
+        y += lineGap;
+        y = drawLine(c, y,"Runtime:", runtime, labelFont, valueFont);
+        y = drawLine(c, y,"Antelopes Caught:", formatWithPerHour(antelopesCaught, antelopesPerHour), labelFont, valueFont);
+        y = drawLine(c, y,"Total Bolts Banked:", formatWithPerHour(boltsBanked, boltsPerHour), labelFont, valueFont);
+        y = drawLine(c, y,"HP to eat or bank at (randomized):", String.valueOf((int) (randomizedHPPctToEatAt * userHPLevel / 100.0)), labelFont, valueFont);
+    }
+
+    private int drawLine(Canvas c, int y, String labelText, String valueText, Font labelFont, Font valueFont) {
+        final int lineGap = 16;
+        c.drawText(labelText, 8 + 10, y, -4934476, labelFont);
+        int valW = c.getFontMetrics(valueFont).stringWidth(valueText);
+        c.drawText(valueText, 8 + 250 - 10 - valW, y, -1, valueFont);
+        return y + lineGap;
+    }
+
+    private String formatRuntime(long millis) {
+        long seconds = millis / 1000;
+        long hours = (seconds % 86400) / 3600;
+        long minutes = (seconds % 3600) / 60;
+
+        return String.format("%02d:%02d", hours, minutes);
+    }
+
+    private String formatWithPerHour(int total, int perHour) {
+        return String.format("%,d (%,d/hr)", total, perHour);
     }
 
     @Override
@@ -359,6 +495,7 @@ public class MoonlightAntelope extends Script {
 
     @Override
     public boolean canHopWorlds() {
+        log(MoonlightAntelope.class, "canHopWorlds: " + allowHopOrBreak);
         return allowHopOrBreak;
     }
 
@@ -372,60 +509,42 @@ public class MoonlightAntelope extends Script {
         allowHopOrBreak = true;
     }
 
-    private void climbDownStairs() {
-        WorldPosition playerPos = getWorldPosition();
-        if (playerPos == null) {
-            log(MoonlightAntelope.class, "Player pos is null!");
-            return;
-        }
-
-        RSObject stairs = getObjectManager().getClosestObject(playerPos,"Stairs");
-        if (stairs == null) {
-            log(MoonlightAntelope.class, "Cannot find stairs!");
-            return;
-        }
-
-        if (stairs.interact("Climb-down")) {
-            pollFramesHuman(() -> {
-                WorldPosition pos = getWorldPosition();
-                if (pos == null) {
-                    return false;
-                }
-
-                return pos.getRegionID() == MOONLIGHT_REGION;
-            }, RandomUtils.uniformRandom(10000, 15000));
-        }
+    private boolean isFoodNeeded() {
+        int currentHpPct = getWidgetManager().getMinimapOrbs().getHitpointsPercentage();
+        needsFood = currentHpPct <= randomizedHPPctToEatAt;
+        log(MoonlightAntelope.class, "Current HP%: " + currentHpPct + " Threshold: " + randomizedHPPctToEatAt);
+        return needsFood;
     }
 
-    private boolean interactAndWaitForDialogue() {
-        log(MoonlightAntelope.class, "Chiseling antlers before dropping items...");
-
-        if (!inventorySnapshot.contains(ItemID.CHISEL)) {
-            log(MoonlightAntelope.class, "No chisel in inventory to chisel antlers!");
-            stop();
-            return false;
-        }
-
-        ItemSearchResult chisel = inventorySnapshot.getItem(ItemID.CHISEL);
-        ItemSearchResult randomAntler = inventorySnapshot.getRandomItem(ItemID.MOONLIGHT_ANTELOPE_ANTLER);
-        if (!chisel.isSelected()) {
-            if (!chisel.interact()) {
-                log(MoonlightAntelope.class, "Failed to interact with chisel!");
-                return false;
-            }
-        }
-
-        if (randomAntler.interact()) {
-            return pollFramesHuman(() -> {
-                Dialogue dialogue = getWidgetManager().getDialogue();
-                if (dialogue == null) {
-                    return false;
-                }
-                return dialogue.getDialogueType() == DialogueType.ITEM_OPTION;
-            }, RandomUtils.uniformRandom(2500, 5000));
-        }
-        return false;
-    }
+//    private boolean interactAndWaitForDialogue() {
+//        log(MoonlightAntelope.class, "Chiseling antlers before dropping items...");
+//
+//        if (!inventorySnapshot.contains(ItemID.CHISEL)) {
+//            log(MoonlightAntelope.class, "No chisel in inventory to chisel antlers!");
+//            stop();
+//            return false;
+//        }
+//
+//        ItemSearchResult chisel = inventorySnapshot.getItem(ItemID.CHISEL);
+//        ItemSearchResult randomAntler = inventorySnapshot.getRandomItem(ItemID.MOONLIGHT_ANTELOPE_ANTLER);
+//        if (!chisel.isSelected()) {
+//            if (!chisel.interact()) {
+//                log(MoonlightAntelope.class, "Failed to interact with chisel!");
+//                return false;
+//            }
+//        }
+//
+//        if (randomAntler.interact()) {
+//            return pollFramesHuman(() -> {
+//                Dialogue dialogue = getWidgetManager().getDialogue();
+//                if (dialogue == null) {
+//                    return false;
+//                }
+//                return dialogue.getDialogueType() == DialogueType.ITEM_OPTION;
+//            }, RandomUtils.uniformRandom(2500, 5000));
+//        }
+//        return false;
+//    }
 
     private void handleDialogue() {
         int randomAmountTimeout = RandomUtils.uniformRandom(3000, 3500);
@@ -519,7 +638,6 @@ public class MoonlightAntelope extends Script {
 
             log(MoonlightAntelope.class, "currNumLogs before taking logs: " + currNumLogs);
             pollFramesHuman(() -> {
-                log(MoonlightAntelope.class, "Taking logs...");
                 WorldPosition currPos = getWorldPosition();
                 if (currPos == null) {
                     return false;
@@ -628,10 +746,11 @@ public class MoonlightAntelope extends Script {
 
         // find way to randomized which trap to set?
         for (RSObject pit : availablePits) {
-            if (currNumLogs == 0) {
-                log(MoonlightAntelope.class, "No logs remaining to set trap!");
+            if (currNumLogs < 1) {
+                log(MoonlightAntelope.class, "No logs left to set trap!");
                 return false;
             }
+
             int prevNumberOfActiveTraps = numberOfActiveTraps();
 
             dismantleForRespawnCircle = false;
@@ -653,10 +772,13 @@ public class MoonlightAntelope extends Script {
             // Wait for respawn circle to show
             boolean trapSuccessfullySet = pollFramesHuman(() -> {
                 ensureChatboxVisible();
+                if (currNumLogs < 1) {
+                    log(MoonlightAntelope.class, "No logs left to set trap!");
+                    return true;
+                }
 
                 int currentNumberOfActiveTraps = numberOfActiveTraps();
                 if (currentNumberOfActiveTraps == prevNumberOfActiveTraps) {
-                    log(MoonlightAntelope.class, "Current number of active traps: " + currentNumberOfActiveTraps + " Previous: " + prevNumberOfActiveTraps);
                     return false;
                 }
 
@@ -664,6 +786,9 @@ public class MoonlightAntelope extends Script {
             }, RandomUtils.uniformRandom(7000, 12000));
 
             if (trapSuccessfullySet) {
+                if (currNumLogs < 1) {
+                    return false;
+                }
                 currNumLogs--;
                 log(MoonlightAntelope.class, "Logs remaining after setting trap: " + currNumLogs);
                 // 50% chance to set next trap
@@ -693,21 +818,7 @@ public class MoonlightAntelope extends Script {
             return antelopePositions;
         }
 
-//        Area validNPCPosArea = null;
-//        WorldPosition activeTrapPos = activeTrap.getWorldPosition();
-//        if (VALID_WEST_TRAP_AREA.contains(activeTrapPos)) {
-//            validNPCPosArea = VALID_WEST_TRAP_AREA;
-//        } else if (VALID_SOUTH_TRAP_AREA.contains(activeTrapPos)) {
-//            validNPCPosArea = VALID_SOUTH_TRAP_AREA;
-//        }
-
-//        if (validNPCPosArea == null) {
-//            log(MoonlightAntelope.class, "No eligible antelopes for the current trap position! Waiting...");
-//            return new ArrayList<>();
-//        }
-
         drawSelectedAntelope(npcPositions);
-//        Area finalValidNPCPosArea = validNPCPosArea;
         npcPositions.forEach((npcPos) -> {
             if (!VALID_MOONLIGHT_NPC_AREA.contains(npcPos)) {
                 return;
@@ -733,6 +844,7 @@ public class MoonlightAntelope extends Script {
     }
 
     private boolean teaseAntelope(List<Rectangle> antelopePos) {
+        enableRunEnergy(this);
         // get random antelope
         int randomIndex = RandomUtils.uniformRandom(0, antelopePos.size() - 1);
         log(MoonlightAntelope.class, "Teasing antelope at index: " + randomIndex);
@@ -742,69 +854,165 @@ public class MoonlightAntelope extends Script {
             return false;
         }
 
+        Timer animationTimer = new Timer();
+        int randomTeaseDelay = RandomUtils.uniformRandom(250, 300);
         return pollFramesUntil(() -> {
-            WorldPosition currPos = getWorldPosition();
-            if (currPos == null) {
+            log(MoonlightAntelope.class, "Animation timer: " + animationTimer.timeElapsed());
+            if (animationTimer.timeElapsed() < randomTeaseDelay) {
                 return false;
             }
 
-            if (getPixelAnalyzer().isPlayerAnimating(0.3)) {
+            if (getPixelAnalyzer().isPlayerAnimating(0.15)) {
+                animationTimer.reset();
                 log(MoonlightAntelope.class, "Player is animating...");
                 return false;
             }
 
             log(MoonlightAntelope.class, "Last Player Position: " + getLastPositionChangeMillis());
-            return getLastPositionChangeMillis() > 350;
+            return getLastPositionChangeMillis() > 100;
         }, RandomUtils.uniformRandom(6000, 9000));
     }
 
-    private boolean walkToArea(Area area) {
-//        int breakDistance = RandomUtils.uniformRandom(2, 5);
-        WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(2);
-        builder.breakCondition(() -> {
-            WorldPosition currentPosition = getWorldPosition();
-            if (currentPosition == null) {
-                return false;
-            }
-
-            log(MoonlightAntelope.class, "Walking to area...");
-            return area.contains(currentPosition);
-        });
-        return getWalker().walkTo(area.getRandomPosition(), builder.build());
-    }
-
-    private void walkToObject(RSObject object) {
-        int breakDistance = RandomUtils.uniformRandom(2, 5);
-        WalkConfig.Builder builder = new WalkConfig.Builder().tileRandomisationRadius(2).breakDistance(breakDistance);
-        builder.breakCondition(() -> {
-            WorldPosition playerPos = getWorldPosition();
-            if (playerPos == null) {
-                return false;
-            }
-
-            Polygon objPolygon = object.getConvexHull();
-            if (objPolygon == null) {
-                return false;
-            }
-
-            return object.distance(playerPos) < 3 || (getWidgetManager().insideGameScreenFactor(objPolygon, List.of(ChatboxComponent.class)) >= 0.7);
-        });
-        getWalker().walkTo(object, builder.build());
-    }
-
-    private boolean playerInSafeArea() {
-        WorldPosition playerPos = getWorldPosition();
-        if (playerPos == null) {
-            log(MoonlightAntelope.class, "Player pos is null!");
+    private boolean trapAntelope(RSObject pit) {
+        if (pit == null) {
+            log(MoonlightAntelope.class, "Pit is null!");
             return false;
         }
 
-        int randomSafeArea = RandomUtils.uniformRandom(TRAP_SAFE_AREA.size() - 1);
-        if (TRAP_SAFE_AREA.stream().noneMatch(safeArea -> safeArea.contains(playerPos))) {
-            log(MoonlightAntelope.class, "Walking to safe area...");
-            return walkToArea(TRAP_SAFE_AREA.get(randomSafeArea));
+        log(MoonlightAntelope.class, "Jumping over pit...");
+        int randomTapOrInteract = RandomUtils.uniformRandom(2);
+        if (randomTapOrInteract == 0) {
+            if (!pit.interact(spikedPitHook)) {
+                log(MoonlightAntelope.class, "Failed to jump over pit!");
+                return false;
+            }
+        } else {
+            Polygon pitPoly = pit.getConvexHull();
+            if (pitPoly == null) {
+                log(MoonlightAntelope.class, "Pit polygon is null!");
+                return false;
+            }
+
+            MenuEntry response = getFinger().tapGetResponse(true, pitPoly);
+            if (response == null) {
+                log(MoonlightAntelope.class, "Failed to get menu entry response when jumping pit!");
+                return false;
+            }
+
+            if (response.getAction() == null || !response.getAction().equalsIgnoreCase("jump")) {
+                log(MoonlightAntelope.class, "Menu entry action is not jump-over!");
+                return false;
+            }
         }
-        return true;
+
+        boolean inSafeAreaAfterJump = pollFramesHuman(() -> {
+            WorldPosition currPos = getWorldPosition();
+            if (currPos == null) {
+                log(MoonlightAntelope.class, "Current position is null after jumping pit!");
+                return false;
+            }
+
+            return TRAP_SAFE_AREA.stream().anyMatch(area -> area.contains(currPos));
+        }, RandomUtils.uniformRandom(5000, 8000));
+
+        if (!inSafeAreaAfterJump) {
+            log(MoonlightAntelope.class, "Not in safe area after jumping pit! Retrying...");
+            if (!pit.interact(spikedPitHook)) {
+                log(MoonlightAntelope.class, "Failed to jump over pit again!");
+                return false;
+            }
+
+            inSafeAreaAfterJump = pollFramesHuman(() -> {
+                WorldPosition currPos = getWorldPosition();
+                if (currPos == null) {
+                    log(MoonlightAntelope.class, "Current position is null after jumping pit!");
+                    return false;
+                }
+
+                return TRAP_SAFE_AREA.stream().anyMatch(area -> area.contains(currPos));
+            }, RandomUtils.uniformRandom(3000, 5000));
+
+            if (!inSafeAreaAfterJump) {
+                log(MoonlightAntelope.class, "Still not in safe area after second jump attempt!");
+                return false;
+            }
+        }
+
+        int initialNumActiveTraps = numberOfActiveTraps();
+        return pollFramesHuman(() -> {
+            Map<RSObject, PixelAnalyzer.RespawnCircle> respawnCircles = respawnCircleExists();
+            if (respawnCircles == null) {
+                return false;
+            }
+
+            return initialNumActiveTraps != respawnCircles.size();
+        }, RandomUtils.uniformRandom(6000, 9000));
+    }
+
+    private boolean anyTrapsToDismantle(Map<RSObject, PixelAnalyzer.RespawnCircle> activePits) {
+        RSObject trapToDismantle = null;
+
+        // should we use a stream here?
+        for (Map.Entry<RSObject, PixelAnalyzer.RespawnCircle> entry : activePits.entrySet()) {
+            if (entry.getValue() == null || entry.getValue().getType() != PixelAnalyzer.RespawnCircle.Type.GREEN) {
+                continue;
+            }
+
+            trapToDismantle = entry.getKey();
+            break;
+        }
+
+        if (trapToDismantle == null) {
+            log(MoonlightAntelope.class, "No traps to dismantle!");
+            return false;
+        }
+
+        if (!trapToDismantle.isInteractableOnScreen()) {
+            log(MoonlightAntelope.class, "Trap to dismantle is not interactable on screen! Walking to trap...");
+            walkToObject(this, trapToDismantle);
+        }
+
+        isAntelopeCaught = false;
+        log(MoonlightAntelope.class, "Dismantling trap...");
+
+        int randomTapOrInteract = RandomUtils.uniformRandom(2);
+        if (randomTapOrInteract == 0) {
+            if (!trapToDismantle.interact(dismantleHook)) {
+                log(MoonlightAntelope.class, "Failed to interact and dismantle trap!");
+                return false;
+            }
+        } else {
+            Polygon trapPoly = trapToDismantle.getConvexHull();
+            if (trapPoly == null) {
+                log(MoonlightAntelope.class, "Trap polygon is null!");
+                return false;
+            }
+
+            MenuEntry response = getFinger().tapGetResponse(true, trapPoly);
+            if (response == null) {
+                log(MoonlightAntelope.class, "Failed to get menu entry response when dismantling trap!");
+                return false;
+            }
+
+            if (response.getAction() == null || !response.getAction().equalsIgnoreCase("dismantle")) {
+                log(MoonlightAntelope.class, "Menu entry action is not dismantle!");
+                return false;
+            }
+            log(MoonlightAntelope.class, "Successfully tapped dismantle on trap!");
+        }
+
+        boolean dismantledTrap = pollFramesHuman(() -> {
+            ensureChatboxVisible();
+            return isAntelopeCaught || isInvyFull;
+        }, RandomUtils.uniformRandom(4000, 7000));
+
+        if (dismantledTrap) {
+            log(MoonlightAntelope.class, "Successfully dismantled trap!");
+            return true;
+        }
+
+        log(MoonlightAntelope.class, "Failed to dismantle trap");
+        return false;
     }
 
     private void drawAvailablePits(List<RSObject> pits) {
@@ -860,111 +1068,9 @@ public class MoonlightAntelope extends Script {
         });
     }
 
-    private boolean trapAntelope(RSObject pit) {
-        if (pit == null) {
-            log(MoonlightAntelope.class, "Pit is null!");
-            return false;
-        }
-
-        log(MoonlightAntelope.class, "Jumping over pit...");
-        if (!pit.interact(spikedPitHook)) {
-            log(MoonlightAntelope.class, "Failed to jump over pit!");
-            return false;
-        }
-
-        boolean inSafeAreaAfterJump = pollFramesHuman(() -> {
-            WorldPosition currPos = getWorldPosition();
-            if (currPos == null) {
-                log(MoonlightAntelope.class, "Current position is null after jumping pit!");
-                return false;
-            }
-
-            return TRAP_SAFE_AREA.stream().anyMatch(area -> area.contains(currPos));
-        }, RandomUtils.uniformRandom(5000, 8000));
-
-        if (!inSafeAreaAfterJump) {
-            log(MoonlightAntelope.class, "Not in safe area after jumping pit! Retrying...");
-            if (!pit.interact(spikedPitHook)) {
-                log(MoonlightAntelope.class, "Failed to jump over pit again!");
-                return false;
-            }
-
-            inSafeAreaAfterJump = pollFramesHuman(() -> {
-                WorldPosition currPos = getWorldPosition();
-                if (currPos == null) {
-                    log(MoonlightAntelope.class, "Current position is null after jumping pit!");
-                    return false;
-                }
-
-                return TRAP_SAFE_AREA.stream().anyMatch(area -> area.contains(currPos));
-            }, RandomUtils.uniformRandom(3000, 5000));
-
-            if (!inSafeAreaAfterJump) {
-                log(MoonlightAntelope.class, "Still not in safe area after second jump attempt!");
-                return false;
-            }
-        }
-
-        int initialNumActiveTraps = numberOfActiveTraps();
-        return pollFramesUntil(() -> {
-            Map<RSObject, PixelAnalyzer.RespawnCircle> respawnCircles = respawnCircleExists();
-            if (respawnCircles == null) {
-                return false;
-            }
-
-            log(MoonlightAntelope.class, "Initial num active traps: " + initialNumActiveTraps + " Current: " + respawnCircles.size());
-            return initialNumActiveTraps > respawnCircles.size();
-        }, RandomUtils.uniformRandom(6000, 9000));
-    }
-
-    private boolean anyTrapsToDismantle(Map<RSObject, PixelAnalyzer.RespawnCircle> activePits) {
-        RSObject trapToDismantle = null;
-
-        // should we use a stream here?
-        for (Map.Entry<RSObject, PixelAnalyzer.RespawnCircle> entry : activePits.entrySet()) {
-            if (entry.getValue() == null || entry.getValue().getType() != PixelAnalyzer.RespawnCircle.Type.GREEN) {
-                continue;
-            }
-
-            trapToDismantle = entry.getKey();
-            break;
-        }
-
-        if (trapToDismantle == null) {
-            log(MoonlightAntelope.class, "No traps to dismantle!");
-            return false;
-        }
-
-        if (!trapToDismantle.isInteractableOnScreen()) {
-            log(MoonlightAntelope.class, "Trap to dismantle is not interactable on screen! Walking to trap...");
-            walkToObject(trapToDismantle);
-        }
-
-        isAntelopeCaught = false;
-        log(MoonlightAntelope.class, "Dismantling trap...");
-        if (!trapToDismantle.interact(dismantleHook)) {
-            log(MoonlightAntelope.class, "Failed to interact and dismantle trap!");
-            return false;
-        }
-
-        boolean dismantledTrap = pollFramesHuman(() -> {
-            ensureChatboxVisible();
-            return isAntelopeCaught || isInvyFull;
-        }, RandomUtils.uniformRandom(4000, 7000));
-
-        if (dismantledTrap) {
-            log(MoonlightAntelope.class, "Successfully dismantled trap!");
-            return true;
-        }
-
-        log(MoonlightAntelope.class, "Failed to dismantle trap");
-        return false;
-    }
-
     private void eatFood() {
         log(MoonlightAntelope.class, "Eating food...");
-        // for # of food in inventory, eat all until all food gone OR hp > 90%
-        List<ItemSearchResult> foodInInventory = inventorySnapshot.getAllOfItem(selectedFoodItem);
+        List<ItemSearchResult> foodInInventory = inventorySnapshot.getAllOfItem(selectedFoodItemID);
         if (foodInInventory == null || foodInInventory.isEmpty()) {
             log(MoonlightAntelope.class, "Food not found in inventory!");
             return;
@@ -972,7 +1078,6 @@ public class MoonlightAntelope extends Script {
 
         UIResult<Boolean> tapToDropEnabled = getWidgetManager().getHotkeys().isTapToDropEnabled();
 
-        // check if tap to drop component is visible
         if (tapToDropEnabled.isNotVisible()) {
             log(MoonlightAntelope.class, "Tap to drop component not visible");
             return;
@@ -993,16 +1098,19 @@ public class MoonlightAntelope extends Script {
         }
 
         for (ItemSearchResult food : foodInInventory) {
-            int foodRemaining = inventorySnapshot.getAmount(selectedFoodItem);
+            if (!isFoodNeeded()) {
+                break;
+            }
+            int foodRemaining = inventorySnapshot.getAmount(selectedFoodItemID);
             getFinger().tap(true, food);
             pollFramesHuman(() -> {
-                inventorySnapshot = getWidgetManager().getInventory().search(Set.of(selectedFoodItem));
+                inventorySnapshot = getWidgetManager().getInventory().search(Set.of(selectedFoodItemID));
                 if (inventorySnapshot == null) {
                     log(MoonlightAntelope.class, "Inventory is null after eating food!");
                     return false;
                 }
 
-                return inventorySnapshot.getAmount(selectedFoodItem) < foodRemaining;
+                return inventorySnapshot.getAmount(selectedFoodItemID) < foodRemaining;
             }, RandomUtils.uniformRandom(2000, 4000));
         }
         log(MoonlightAntelope.class, "Finished eating.");
@@ -1161,4 +1269,57 @@ public class MoonlightAntelope extends Script {
         }
     }
 
+    public static int compareVersions(String v1, String v2) {
+        String[] a = v1.split("\\.");
+        String[] b = v2.split("\\.");
+        int len = Math.max(a.length, b.length);
+        for (int i = 0; i < len; i++) {
+            int n1 = i < a.length ? Integer.parseInt(a[i]) : 0;
+            int n2 = i < b.length ? Integer.parseInt(b[i]) : 0;
+            if (n1 != n2) return Integer.compare(n1, n2);
+        }
+        return 0;
+    }
+
+//    private boolean checkForUpdates() {
+//        String latest = getLatestVersion("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/refs/heads/main/ButterPumper/src/com/butter/script/combat/butterpumper/ButterPumper.java");
+//
+//        if (latest == null) {
+//            log("VERSION", "⚠ Could not fetch latest version info.");
+//            return false;
+//        }
+//
+//        if (compareVersions(scriptVersion, latest) < 0) {
+//            log("VERSION", "❌ New version v" + latest + " found! Please update your script from github.");
+//            return true;
+//        }
+//
+//        log("SCRIPTVERSION", "✅ You are running the latest version (v" + scriptVersion + ").");
+//        return true;
+//    }
+
+    private String getLatestVersion(String url) {
+        try {
+            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+            c.setRequestMethod("GET");
+            c.setConnectTimeout(3000);
+            c.setReadTimeout(3000);
+
+            if (c.getResponseCode() != 200) {
+                return null;
+            }
+
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (line.trim().startsWith("version")) {
+                        return line.split("=")[1].replace(",", "").trim();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log("VERSION", "❌ ⚠ Error fetching latest version: " + e.getMessage());
+        }
+        return null;
+    }
 }

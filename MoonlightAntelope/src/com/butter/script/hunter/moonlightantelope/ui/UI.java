@@ -9,20 +9,25 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.util.Arrays;
+import java.util.prefs.Preferences;
 
 public class UI extends VBox {
+    private final Preferences prefs = Preferences.userRoot().node("Butter-Scripts/MoonlightAntelope");
+    private final String PREF_FOOD_ID = "food_id";
+    private final String PREF_FOOD_EAT_PCT = "food_eat_pct";
+    private final String PREF_CHISEL_ANTLERS = "chisel_antlers";
 
     private ComboBox<Integer> foodComboBox;
     private final CheckBox chiselAntlers = new CheckBox("Chisel Antlers (coming soon)");
     private Spinner<Integer> foodEatPctSpinner;
 
     public Scene buildScene(ScriptCore core) {
-        VBox vBox = new VBox();
-        vBox.setSpacing(20);
-        vBox.setStyle("-fx-background-color: #636E72; -fx-padding: 10");
+        VBox mainVBox = new VBox();
+        mainVBox.setSpacing(20);
+        mainVBox.setStyle("-fx-background-color: #636E72; -fx-padding: 10");
 
         Label foodLabel = new Label("Select Food");
-        Label foodEatPctLabel = new Label("Eat Food at % (slightly randomized):");
+        Label foodEatPctLabel = new Label("HP % to eat or bank:");
 
         chiselAntlers.setDisable(true);
 
@@ -30,23 +35,32 @@ public class UI extends VBox {
         foodComboBox = JavaFXUtils.createItemCombobox(core, foodItemIDs);
         foodComboBox.setPrefWidth(200);
 
-        foodEatPctSpinner = new Spinner<>(1, 100, 40);
+        // Load preferences
+        chiselAntlers.setSelected(prefs.getBoolean(PREF_CHISEL_ANTLERS, false));
+        foodComboBox.setValue(prefs.getInt(PREF_FOOD_ID, Food.JUG_OF_WINE.getItemID()));
+        foodEatPctSpinner = new Spinner<>(1, 100, prefs.getInt(PREF_FOOD_EAT_PCT, 40));
 
-        Button button = new Button("Confirm");
-        button.setOnAction(event -> {
-            if (foodComboBox.getValue() != null) {
-                ((Stage) button.getScene().getWindow()).close();
+        Button confirmButton = new Button("Confirm");
+        confirmButton.setOnAction(event -> {
+            if (foodComboBox.getValue() != null && foodEatPctSpinner.getValue() != null) {
+                savePrefSettings();
+                ((Stage) confirmButton.getScene().getWindow()).close();
             }
         });
 
-        vBox.getChildren().addAll(chiselAntlers, foodEatPctLabel, foodEatPctSpinner, foodLabel, foodComboBox, button);
 
-        Scene scene = new Scene(vBox, 300, 350);
+        VBox foodEatPctBox = new VBox(foodEatPctLabel, foodEatPctSpinner);
+        foodEatPctBox.setPrefWidth(100);
+        VBox foodBox = new VBox(foodLabel, foodComboBox);
+
+        mainVBox.getChildren().addAll(chiselAntlers, foodEatPctBox, foodBox, confirmButton);
+
+        Scene scene = new Scene(mainVBox, 300, 280);
         scene.getStylesheets().add("style.css");
         return scene;
     }
 
-    public int getSelectedFood() {
+    public int getSelectedFoodID() {
         return foodComboBox.getValue();
     }
 
@@ -56,6 +70,12 @@ public class UI extends VBox {
 
     public boolean chisselAntlers() {
         return chiselAntlers.isSelected();
+    }
+
+    private void savePrefSettings() {
+        prefs.putInt(PREF_FOOD_ID, getSelectedFoodID());
+        prefs.putInt(PREF_FOOD_EAT_PCT, getFoodEatPct());
+        prefs.putBoolean(PREF_CHISEL_ANTLERS, chisselAntlers());
     }
 
 }

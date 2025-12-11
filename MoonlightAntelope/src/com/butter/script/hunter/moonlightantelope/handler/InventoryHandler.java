@@ -42,6 +42,8 @@ public class InventoryHandler {
             return;
         }
 
+        // check if inventory contains food, and if so eat it?
+
         // ensure in safe zone!!
 //        if (shouldChiselAntlers && inventorySnapshot.contains(ItemID.MOONLIGHT_ANTELOPE_ANTLER)) {
 //            if (!interactAndWaitForDialogue()) {
@@ -70,7 +72,7 @@ public class InventoryHandler {
 //        }
 
         // Use this until Moonlight antlers are chiseled properly
-        if (inventorySpace <= 4) {
+        if (inventorySpace < 4) {
             climbUpStairs();
         }
     }

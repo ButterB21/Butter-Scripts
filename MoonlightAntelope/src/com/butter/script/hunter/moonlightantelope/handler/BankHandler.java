@@ -67,7 +67,7 @@ public class BankHandler {
                 return;
             }
 
-            core.pollFramesHuman(() -> bank.isVisible(), RandomUtils.uniformRandom(4000,8000));
+            core.pollFramesUntil(() -> bank.isVisible(), RandomUtils.uniformRandom(4000,8000));
         }
     }
 
@@ -77,45 +77,61 @@ public class BankHandler {
             return;
         }
 
-        if (isFoodEnabled) {
-            withdrawFood();
-        }
-
+        withdrawFood();
         bank.close();
         core.pollFramesHuman(() -> !bank.isVisible(), RandomUtils.uniformRandom(3000, 6000));
     }
 
     private void withdrawFood() {
-        Integer playerHitpointsPercent = core.getWidgetManager().getMinimapOrbs().getHitpointsPercentage();
-        Integer playerHitpointsAmount = core.getWidgetManager().getMinimapOrbs().getHitpoints();
-        if (playerHitpointsPercent == null || playerHitpointsAmount == null) {
+        // Read player HP info
+        Integer hpPct = core.getWidgetManager().getMinimapOrbs().getHitpointsPercentage();
+        Integer hpCurrent = core.getWidgetManager().getMinimapOrbs().getHitpoints();
+        if (hpPct == null || hpCurrent == null) {
             core.log(BankHandler.class, "Could not get player hitpoints info!");
             return;
         }
 
-        if (playerHitpointsPercent <= hpPctToEatAt) {
-            core.log(BankHandler.class, "Eating food at bank to restore HP...");
+        int deviation = RandomUtils.uniformRandom(-15, 15);
+        randomizedHPPctToEatAt = deviation + hpPctToEatAt;
+        core.log(BankHandler.class, "HP % to eat at for next run randomized to: " + randomizedHPPctToEatAt + "%");
+        core.log(BankHandler.class, "Player HP: " + hpCurrent + "/" + userHPLevel + " (" + hpPct + "%), Eating at " + randomizedHPPctToEatAt + "%");
 
-            ItemGroupResult foodInBank = core.getWidgetManager().getBank().search(Set.of(selectedFoodItem));
-            if (foodInBank == null) {
-                core.log(MoonlightAntelope.class, "Food item not found in bank!");
-                return;
-            }
+        ItemGroupResult foodInBank = core.getWidgetManager().getBank().search(Set.of(selectedFoodItemID));
+        if (foodInBank == null) {
+            core.log(MoonlightAntelope.class, "Food item not found in bank!");
+            core.stop();
+            return;
+        }
 
-            ItemSearchResult foodItem = foodInBank.getItem(selectedFoodItem);
-            if (foodItem == null || foodItem.getStackAmount() <= 0) {
-                core.log(MoonlightAntelope.class, "Out of " + selectedFoodItem + " in bank!");
-                core.stop();
-                return;
-            }
+        ItemSearchResult foodItem = foodInBank.getItem(selectedFoodItemID);
+        if (foodItem == null || foodItem.getStackAmount() <= 0) {
+            core.log(MoonlightAntelope.class, "Out of " + selectedFoodItemID + " in bank!");
+            core.stop();
+            return;
+        }
 
-            int wineHealValue = 11;
-            int amountToWithdraw = (userHPLevel - playerHitpointsAmount) / wineHealValue;
-            core.log(BankHandler.class, "Withdrawing " + amountToWithdraw + " of food item...");
-            if (!bank.withdraw(selectedFoodItem, wineHealValue)) {
-                core.log(BankHandler.class, "Failed to withdraw food item!");
-                return;
-            }
+
+        ItemGroupResult inventorySnapshot = core.getWidgetManager().getInventory().search(ITEM_IDS_TO_RECOGNIZE);
+        if (inventorySnapshot == null) {
+            core.log(BankHandler.class, "Failed to get inventory snapshot!");
+            return;
+        }
+
+        int healPerFood = selectedFood.getHealAmount();
+        int minFoodNeeded = (userHPLevel - hpCurrent) / healPerFood;
+        int availableFoodInInventory = inventorySnapshot.getAmount(selectedFoodItemID);
+
+        if (availableFoodInInventory >= minFoodNeeded) {
+            core.log(BankHandler.class, "Already have enough food in inventory, skipping withdraw.");
+            return;
+        }
+
+        minFoodNeeded -= availableFoodInInventory;
+        int randomAmountToWithdraw = RandomUtils.uniformRandom(minFoodNeeded, minFoodNeeded + 3);
+        core.log(BankHandler.class, "Withdrawing " + randomAmountToWithdraw + " of food item...");
+        if (!bank.withdraw(selectedFoodItemID, randomAmountToWithdraw)) {
+            core.log(BankHandler.class, "Failed to withdraw food item!");
+            return;
         }
     }
 
