@@ -54,7 +54,7 @@ public class ButterMoonlightAntelope extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "0.1";
+    private final String scriptVersion = "1.0";
     private long scriptStartTime = 0;
     private static final java.awt.Font ARIAL = new java.awt.Font("Arial",java.awt.Font.BOLD, 14);
 
