@@ -31,7 +31,7 @@ public class Constants {
     public static final RectangleArea MOONLIGHT_HUNT_AREA = new RectangleArea(1549, 9412, 19, 11, 0);
 
     public static final RectangleArea TRAP_SAFE_AREA_WEST = new RectangleArea(1551, 9417, 3, 5, 0);
-    public static final RectangleArea TRAP_SAFE_AREA_EAST = new RectangleArea(1566, 9415, 1, 5, 0);
+    public static final RectangleArea TRAP_SAFE_AREA_EAST = new RectangleArea(1566, 9415, 2, 3, 0);
     public static final RectangleArea TRAP_SAFE_AREA_SOUTH = new RectangleArea(1559, 9412, 4, 2, 0);
     public static final List<RectangleArea> TRAP_SAFE_AREA = List.of(TRAP_SAFE_AREA_WEST, TRAP_SAFE_AREA_EAST, TRAP_SAFE_AREA_SOUTH);
 

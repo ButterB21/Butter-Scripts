@@ -91,7 +91,7 @@ public class BankHandler {
             return;
         }
 
-        int deviation = RandomUtils.uniformRandom(-15, 15);
+        int deviation = RandomUtils.uniformRandom(-10, 15);
         randomizedHPPctToEatAt = deviation + hpPctToEatAt;
         core.log(BankHandler.class, "HP % to eat at for next run randomized to: " + randomizedHPPctToEatAt + "%");
         core.log(BankHandler.class, "Player HP: " + hpCurrent + "/" + userHPLevel + " (" + hpPct + "%), Eating at " + randomizedHPPctToEatAt + "%");
@@ -118,7 +118,7 @@ public class BankHandler {
         }
 
         int healPerFood = selectedFood.getHealAmount();
-        int minFoodNeeded = (userHPLevel - hpCurrent) / healPerFood;
+        int minFoodNeeded = Math.max(1, (userHPLevel - hpCurrent) / healPerFood);
         int availableFoodInInventory = inventorySnapshot.getAmount(selectedFoodItemID);
 
         if (availableFoodInInventory >= minFoodNeeded) {
@@ -131,9 +131,60 @@ public class BankHandler {
         core.log(BankHandler.class, "Withdrawing " + randomAmountToWithdraw + " of food item...");
         if (!bank.withdraw(selectedFoodItemID, randomAmountToWithdraw)) {
             core.log(BankHandler.class, "Failed to withdraw food item!");
-            return;
         }
+
+        core.log(BankHandler.class, "Healing up to full health...");
+        for (int i = 0; i < minFoodNeeded; i++) {
+            inventorySnapshot = core.getWidgetManager().getInventory().search(ITEM_IDS_TO_RECOGNIZE);
+            int currentFoodAmount = inventorySnapshot.getAmount(selectedFoodItemID);
+            inventorySnapshot.getRandomItem(selectedFoodItemID).interact("Eat");
+
+            core.pollFramesHuman(() -> {
+                ItemGroupResult currentInvySnapshot = core.getWidgetManager().getInventory().search(ITEM_IDS_TO_RECOGNIZE);
+                if (currentInvySnapshot == null) {
+                    return false;
+                }
+
+                return currentFoodAmount != currentInvySnapshot.getAmount(selectedFoodItemID);
+            }, RandomUtils.uniformRandom(1500, 2500));
+        }
+
     }
+
+//
+//    private void eatAtBank() {
+//        Integer hpCurrent = core.getWidgetManager().getMinimapOrbs().getHitpoints();
+//        if (hpCurrent == null) {
+//            core.log(BankHandler.class, "Could not get player current hitpoints!");
+//            return;
+//        }
+//
+//        int healPerFood = selectedFood.getHealAmount();
+//        int minFoodNeeded = (userHPLevel - hpCurrent) / healPerFood;
+//
+//        List<ItemSearchResult> foodInInventory = invySnapshot.getAllOfItem(selectedFoodItemID);
+//        if (foodInInventory == null || foodInInventory.isEmpty()) {
+//            core.log(BankHandler.class, "Food not found in inventory!");
+//            return;
+//        }
+//
+//        for (ItemSearchResult foodItem : foodInInventory) {
+//
+//            int foodRemaining = invySnapshot.getAmount(selectedFoodItemID);
+//            foodItem.interact("eat");
+//            core.pollFramesHuman(() -> {
+//                ItemGroupResult currentInvySnapshot = core.getWidgetManager().getInventory().search(ITEM_IDS_TO_RECOGNIZE);
+//                if (currentInvySnapshot == null) {
+//                    return false;
+//                }
+//
+//                return foodRemaining != currentInvySnapshot.getAmount(selectedFoodItemID);
+//            }, RandomUtils.uniformRandom(1500, 2500));
+//
+//            invySnapshot = core.getWidgetManager().getInventory().search(ITEM_IDS_TO_RECOGNIZE);
+//
+//        }
+//    }
 
     private boolean walkToBank() {
         core.log(BankHandler.class, "Walking to bank...");

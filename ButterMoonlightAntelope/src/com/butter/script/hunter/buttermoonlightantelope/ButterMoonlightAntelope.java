@@ -46,7 +46,7 @@ import static com.butter.script.hunter.buttermoonlightantelope.util.MovementUtil
 @ScriptDefinition(
         name = "Butter Moonlight Antelope",
         description =  "A script for catching & banking Moonlight Antelope antlers & meat.",
-        version = 1.0,
+        version = 1.1,
         author = "Butter",
         skillCategory = SkillCategory.HUNTER)
 public class ButterMoonlightAntelope extends Script {
@@ -54,7 +54,7 @@ public class ButterMoonlightAntelope extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "1.0";
+    private final String scriptVersion = "1.1";
     private long scriptStartTime = 0;
     private static final java.awt.Font ARIAL = new java.awt.Font("Arial",java.awt.Font.BOLD, 14);
 
