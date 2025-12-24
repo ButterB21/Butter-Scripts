@@ -22,7 +22,6 @@ public class InventoryHandler {
         this.core = core;
     }
 
-
     public boolean checkInvySpace() {
         inventorySnapshot = core.getWidgetManager().getInventory().search(ITEM_IDS_TO_RECOGNIZE);
         if (inventorySnapshot == null) {

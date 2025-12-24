@@ -10,9 +10,7 @@ import com.osmb.api.ui.bank.Bank;
 import com.osmb.api.utils.RandomUtils;
 import com.osmb.api.walker.WalkConfig;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 import static com.butter.script.hunter.buttermoonlightantelope.Constants.*;
@@ -77,6 +75,30 @@ public class BankHandler {
             return;
         }
 
+        ItemGroupResult inventorySnapshot = core.getWidgetManager().getInventory().search(ITEM_IDS_POUCHES);
+        if (inventorySnapshot == null) {
+            core.log(BankHandler.class, "Failed to get inventory snapshot!");
+            return;
+        }
+
+        if (inventorySnapshot.containsAny(ITEM_IDS_POUCHES)) {
+            List<ItemSearchResult> pouchesFound = new ArrayList<>(inventorySnapshot.getAllOfItems(ITEM_IDS_POUCHES));
+            if (pouchesFound.isEmpty()) {
+                core.log(BankHandler.class, "No pouches found to empty!");
+                return;
+            }
+
+            // Shuffle list for randomization
+            Collections.shuffle(pouchesFound);
+            for (ItemSearchResult pouch : pouchesFound) {
+                pouchEmptied = false;
+                pouch.interact("Empty");
+                core.pollFramesHuman(() -> {
+                    return pouchEmptied;
+                }, RandomUtils.uniformRandom(2500, 3500));
+            }
+        }
+
         withdrawFood();
         bank.close();
         core.pollFramesHuman(() -> !bank.isVisible(), RandomUtils.uniformRandom(3000, 6000));
@@ -131,6 +153,7 @@ public class BankHandler {
         core.log(BankHandler.class, "Withdrawing " + randomAmountToWithdraw + " of food item...");
         if (!bank.withdraw(selectedFoodItemID, randomAmountToWithdraw)) {
             core.log(BankHandler.class, "Failed to withdraw food item!");
+            return;
         }
 
         core.log(BankHandler.class, "Healing up to full health...");
@@ -148,43 +171,7 @@ public class BankHandler {
                 return currentFoodAmount != currentInvySnapshot.getAmount(selectedFoodItemID);
             }, RandomUtils.uniformRandom(1500, 2500));
         }
-
     }
-
-//
-//    private void eatAtBank() {
-//        Integer hpCurrent = core.getWidgetManager().getMinimapOrbs().getHitpoints();
-//        if (hpCurrent == null) {
-//            core.log(BankHandler.class, "Could not get player current hitpoints!");
-//            return;
-//        }
-//
-//        int healPerFood = selectedFood.getHealAmount();
-//        int minFoodNeeded = (userHPLevel - hpCurrent) / healPerFood;
-//
-//        List<ItemSearchResult> foodInInventory = invySnapshot.getAllOfItem(selectedFoodItemID);
-//        if (foodInInventory == null || foodInInventory.isEmpty()) {
-//            core.log(BankHandler.class, "Food not found in inventory!");
-//            return;
-//        }
-//
-//        for (ItemSearchResult foodItem : foodInInventory) {
-//
-//            int foodRemaining = invySnapshot.getAmount(selectedFoodItemID);
-//            foodItem.interact("eat");
-//            core.pollFramesHuman(() -> {
-//                ItemGroupResult currentInvySnapshot = core.getWidgetManager().getInventory().search(ITEM_IDS_TO_RECOGNIZE);
-//                if (currentInvySnapshot == null) {
-//                    return false;
-//                }
-//
-//                return foodRemaining != currentInvySnapshot.getAmount(selectedFoodItemID);
-//            }, RandomUtils.uniformRandom(1500, 2500));
-//
-//            invySnapshot = core.getWidgetManager().getInventory().search(ITEM_IDS_TO_RECOGNIZE);
-//
-//        }
-//    }
 
     private boolean walkToBank() {
         core.log(BankHandler.class, "Walking to bank...");

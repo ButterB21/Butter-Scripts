@@ -21,7 +21,11 @@ public class Constants {
 
     public static final Set<Integer> LOG_IDS = new HashSet<>(Set.of(ItemID.LOGS, ItemID.OAK_LOGS, ItemID.WILLOW_LOGS, ItemID.MAPLE_LOGS));
     public static final Set<Integer> ITEM_IDS_TO_DROP = new HashSet<>(Set.of(ItemID.BIG_BONES, ItemID.MOONLIGHT_ANTELOPE_FUR, ItemID.JUG));
-    public static final Set<Integer> ITEM_IDS_TO_KEEP = new HashSet<>(Set.of(ItemID.KNIFE, ItemID.CHISEL, ItemID.TEASING_STICK, ItemID.BONECRUSHER, ItemID.MOONLIGHT_ANTLER_BOLTS));
+    public static final Set<Integer> ITEM_IDS_TO_KEEP = new HashSet<>(Set.of(
+            ItemID.KNIFE, ItemID.CHISEL, ItemID.TEASING_STICK, ItemID.BONECRUSHER, ItemID.MOONLIGHT_ANTLER_BOLTS, ItemID.SMALL_MEAT_POUCH, ItemID.LARGE_MEAT_POUCH, ItemID.SMALL_FUR_POUCH, ItemID.LARGE_FUR_POUCH));
+    public static final Set<Integer> ITEM_IDS_POUCHES = new HashSet<>(Set.of(
+            ItemID.SMALL_MEAT_POUCH_OPEN, ItemID.LARGE_MEAT_POUCH_OPEN,
+            ItemID.SMALL_FUR_POUCH_OPEN, ItemID.LARGE_FUR_POUCH_OPEN));
     public static final Set<Integer> ITEM_IDS_TO_BANK = new HashSet<>(Set.of(ItemID.RAW_MOONLIGHT_ANTELOPE, ItemID.MOONLIGHT_ANTELOPE_ANTLER));
 
     public static final int BANK_REGION = 6191;

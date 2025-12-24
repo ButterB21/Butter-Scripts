@@ -46,7 +46,7 @@ import static com.butter.script.hunter.buttermoonlightantelope.util.MovementUtil
 @ScriptDefinition(
         name = "Butter Moonlight Antelope",
         description =  "A script for catching & banking Moonlight Antelope antlers & meat.",
-        version = 1.1,
+        version = 1.2,
         author = "Butter",
         skillCategory = SkillCategory.HUNTER)
 public class ButterMoonlightAntelope extends Script {
@@ -54,9 +54,8 @@ public class ButterMoonlightAntelope extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "1.1";
+    private final String scriptVersion = "1.2";
     private long scriptStartTime = 0;
-    private static final java.awt.Font ARIAL = new java.awt.Font("Arial",java.awt.Font.BOLD, 14);
 
     private BankHandler bankHandler = null;
     private InventoryHandler inventoryHandler = null;
@@ -73,6 +72,7 @@ public class ButterMoonlightAntelope extends Script {
     private int randLogsNeeded = RandomUtils.uniformRandom(1, 3);
     public static boolean isInvyFull = false;
     public static int runEnergyThreshold = RandomUtils.uniformRandom(30, 60);
+    public static boolean pouchEmptied = false;
 
 
     // UI Options
@@ -172,10 +172,12 @@ public class ButterMoonlightAntelope extends Script {
         ITEM_IDS_TO_RECOGNIZE.addAll(ITEM_IDS_TO_DROP);
         ITEM_IDS_TO_RECOGNIZE.addAll(ITEM_IDS_TO_KEEP);
         ITEM_IDS_TO_RECOGNIZE.addAll(ITEM_IDS_TO_BANK);
+        ITEM_IDS_TO_RECOGNIZE.addAll(ITEM_IDS_POUCHES);
 
         ITEM_IDS_TO_RECOGNIZE.add(selectedFoodItemID);
         ITEM_IDS_TO_KEEP.add(selectedFoodItemID);
         ITEM_IDS_TO_KEEP.addAll(LOG_IDS);
+        ITEM_IDS_TO_KEEP.addAll(ITEM_IDS_POUCHES);
         this.bankHandler = new BankHandler(this);
         this.inventoryHandler = new InventoryHandler(this);
         currNumLogs = 0;
@@ -1257,6 +1259,11 @@ public class ButterMoonlightAntelope extends Script {
             if (line.contains("your inventory is too full") || line.contains("you don't have enough inventory space")) {
                 isInvyFull = true;
                 log(ButterMoonlightAntelope.class, "Inventory full!");
+            }
+
+            if (line.contains("out of the pouch") || line.contains("pouch is empty")) {
+                pouchEmptied = true;
+                log(ButterMoonlightAntelope.class, "Emptied pouch!");
             }
         }
     }
