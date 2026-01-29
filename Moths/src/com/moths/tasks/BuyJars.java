@@ -4,7 +4,6 @@ import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemID;
 import com.osmb.api.item.ItemSearchResult;
 import com.osmb.api.location.area.Area;
-import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.script.Script;
 import com.osmb.api.shape.Polygon;
@@ -12,8 +11,6 @@ import com.osmb.api.shape.Rectangle;
 import com.osmb.api.utils.RandomUtils;
 import com.osmb.api.utils.UIResultList;
 import com.osmb.api.visual.SearchablePixel;
-import com.osmb.api.visual.color.ColorModel;
-import com.osmb.api.visual.color.tolerance.impl.SingleThresholdComparator;
 import com.osmb.api.walker.WalkConfig;
 import moths.components.ShopInterface;
 import moths.data.JarShopData;
@@ -26,7 +23,7 @@ import static moths.Moths.*;
 public class BuyJars extends Task {
 
     private final UI ui;
-    ShopInterface shopInterface = new ShopInterface(script);
+//    ShopInterface shopInterface = new ShopInterface(script);
     private JarShopData shopData;
 
     public BuyJars(Script script, UI ui) {
@@ -67,29 +64,21 @@ public class BuyJars extends Task {
         if (shopInterface.isVisible()) {
             handleShop(inventorySnapshot);
             return;
-        } else {
-            WorldPosition position = script.getWorldPosition();
-            if (position == null) {
-                return;
-            }
-
-            Area npcArea = shopData.getNpcArea();
-
-            if (!openShop()) {
-                script.log(BuyJars.class, "Shop not visible!");
-                walkToArea(npcArea);
-                return;
-            }
-
-//            if (npcArea.contains(position)) {
-//                if (!openShop()) {
-//                    script.log(BuyJars.class, "Shop still not visible!");
-//                    return;
-//                }
-//            } else {
-//                walkToArea(npcArea);
-//            }
         }
+
+        WorldPosition position = script.getWorldPosition();
+        if (position == null) {
+            return;
+        }
+
+        Area npcArea = shopData.getNpcArea();
+
+        if (!openShop()) {
+            script.log(BuyJars.class, "Shop not visible!");
+            walkToArea(npcArea);
+            return;
+        }
+
         script.log(BuyJars.class, "Jars bought so far: " + jarsBought);
         script.log(BuyJars.class, "End of BuyJars task.");
     }

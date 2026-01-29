@@ -4,6 +4,7 @@ import com.osmb.api.item.ItemGroupResult;
 import com.osmb.api.item.ItemID;
 import com.osmb.api.location.area.Area;
 import com.osmb.api.location.area.impl.PolyArea;
+import com.osmb.api.location.area.impl.RectangleArea;
 import com.osmb.api.location.position.types.WorldPosition;
 import com.osmb.api.scene.RSObject;
 import com.osmb.api.script.Script;
@@ -36,6 +37,7 @@ public class CatchMoth extends Task {
     private final UI ui;
     private static final SearchablePixel HIGHLIGHT_PIXEL = new SearchablePixel(-14155777, new SingleThresholdComparator(2), ColorModel.HSL);
     private final PolyArea insideGuildArea = new PolyArea(List.of(new WorldPosition(1246, 3723, 0),new WorldPosition(1245, 3743, 0),new WorldPosition(1253, 3742, 0),new WorldPosition(1254, 3741, 0),new WorldPosition(1251, 3737, 0),new WorldPosition(1251, 3723, 0)));
+    private final RectangleArea ABOVE_STAIRS_AREA = new RectangleArea(1553, 3042, 7, 7, 0);
 
     private boolean isCatchOnlyMode() {
         return "Only Catch (No bank)".equalsIgnoreCase(ui.getSelectedMethod());
@@ -212,6 +214,7 @@ public class CatchMoth extends Task {
             Polygon stairsPoly = stairs.getConvexHull();
             if (stairsPoly == null || script.getWidgetManager().insideGameScreenFactor(stairsPoly, List.of(ChatboxComponent.class)) < 0.3) {
                 script.log(CatchMoth.class, "stairsPoly is null!");
+                walkToArea(ABOVE_STAIRS_AREA);
                 return false;
             }
 
@@ -247,4 +250,5 @@ public class CatchMoth extends Task {
         }
         return true;
     }
+
 }

@@ -5,6 +5,7 @@ import com.osmb.api.script.ScriptDefinition;
 import com.osmb.api.script.SkillCategory;
 import com.osmb.api.visual.drawing.Canvas;
 import javafx.scene.Scene;
+import moths.components.ShopInterface;
 import moths.data.JarShopData;
 import moths.data.MothData;
 import moths.tasks.BuyJars;
@@ -22,7 +23,7 @@ import java.util.List;
 @ScriptDefinition(
         name = "Moths",
         description = "A script for catching & banking moths.",
-        version = 2.56,
+        version = 2.59,
         author = "Butter",
         skillCategory = SkillCategory.HUNTER)
 public class Moths extends Script {
@@ -30,7 +31,7 @@ public class Moths extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "2.55";
+    private final String scriptVersion = "2.59";
 
     private UI ui;
     private final List<Task> tasks = new ArrayList<>();
@@ -47,6 +48,8 @@ public class Moths extends Script {
     private boolean isCatch;
     private boolean isRestockOnly;
     private boolean isCatchOnly;
+
+    public static ShopInterface shopInterface;
 
     private static final Font ARIEL = new Font("Arial", Font.PLAIN, 14);
 
@@ -70,6 +73,9 @@ public class Moths extends Script {
         tasks.add(new CatchMoth(this, ui));
         tasks.add(new HandleBank(this, ui));
         tasks.add(new BuyJars(this, ui));
+
+        shopInterface = new ShopInterface(this);
+        getWidgetManager().getInventory().registerInventoryComponent(shopInterface);
     }
 
     @Override
