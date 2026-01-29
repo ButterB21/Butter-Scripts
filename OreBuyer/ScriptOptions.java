@@ -13,9 +13,6 @@ public class ScriptOptions {
     protected static final int[] ORES = new int[] {
             ItemID.COPPER_ORE, ItemID.TIN_ORE, ItemID.IRON_ORE, ItemID.MITHRIL_ORE, ItemID.SILVER_ORE, ItemID.COAL, ItemID.GOLD_ORE
     };
-//    protected static final int[] RUNES = new int[] {
-//            ItemID.ASTRAL_RUNE,ItemID.FIRE_RUNE_PACK, ItemID.WATER_RUNE_PACK, ItemID.AIR_RUNE_PACK, ItemID.EARTH_RUNE_PACK, ItemID.MIND_RUNE_PACK, ItemID.CHAOS_RUNE_PACK
-//    };
 
     //Dropdown menu for the ores
     private ComboBox<Integer> oreComboBox;

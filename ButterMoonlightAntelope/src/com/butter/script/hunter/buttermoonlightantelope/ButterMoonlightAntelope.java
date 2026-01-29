@@ -40,13 +40,14 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+
 import static com.butter.script.hunter.buttermoonlightantelope.Constants.*;
 import static com.butter.script.hunter.buttermoonlightantelope.util.MovementUtils.*;
 
 @ScriptDefinition(
         name = "Butter Moonlight Antelope",
         description =  "A script for catching & banking Moonlight Antelope antlers & meat.",
-        version = 1.2,
+        version = 1.3,
         author = "Butter",
         skillCategory = SkillCategory.HUNTER)
 public class ButterMoonlightAntelope extends Script {
@@ -54,7 +55,7 @@ public class ButterMoonlightAntelope extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "1.2";
+    private final String scriptVersion = "1.3";
     private long scriptStartTime = 0;
 
     private BankHandler bankHandler = null;
@@ -1281,7 +1282,7 @@ public class ButterMoonlightAntelope extends Script {
     }
 
     private boolean checkForUpdates() {
-        String latest = getLatestVersion("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/main/ButterMoonlightAntelope/src/com/butter/script/hunter/buttermoonlightantelope/ButterMoonlightAntelope.java");
+        String latest = getLatestVersion("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/refs/heads/main/ButterMoonlightAntelope/VERSION.txt");
 
         if (latest == null) {
             log("VERSION", "⚠ Could not fetch latest version info.");
@@ -1304,21 +1305,20 @@ public class ButterMoonlightAntelope extends Script {
             c.setConnectTimeout(3000);
             c.setReadTimeout(3000);
 
-            if (c.getResponseCode() != 200) {
+            if (c. getResponseCode() != 200) {
                 return null;
             }
 
             try (BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()))) {
+                StringBuilder sb = new StringBuilder();
                 String line;
                 while ((line = r.readLine()) != null) {
-                    if (line.trim().startsWith("version")) {
-                        return line.split("=")[1].replace(",", "").trim();
-                    }
+                    sb. append(line);
                 }
+                return sb.toString().trim();
             }
         } catch (Exception e) {
-            log("VERSION", "❌ ⚠ Error fetching latest version: " + e.getMessage());
+            return null;
         }
-        return null;
     }
 }

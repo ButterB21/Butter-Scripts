@@ -26,14 +26,14 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-@ScriptDefinition(name = "Butter Pumper", author = "Butter", version = 1.1, description = "Blast Furnace Pumper", skillCategory = SkillCategory.COMBAT)
+@ScriptDefinition(name = "Butter Pumper", author = "Butter", version = 1.2, description = "Blast Furnace Pumper", skillCategory = SkillCategory.COMBAT)
 
 public class ButterPumper extends Script {
     public ButterPumper(Object scriptCore) {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "1.1";
+    private final String scriptVersion = "1.2";
 
     private Timer playerAnimationTimer = new Timer();
     private Timer randomActionTimer = new Timer();

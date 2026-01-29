@@ -69,5 +69,5 @@ bin/
 /.idea/artifacts/
 
 # Java JARs (uncomment to ignore all JAR files globally)
-# *.jar
+ *.jar
 
