@@ -33,7 +33,7 @@ public class ButterPumper extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "1.2";
+    private final String version = "1.2";
 
     private Timer playerAnimationTimer = new Timer();
     private Timer randomActionTimer = new Timer();
@@ -58,7 +58,7 @@ public class ButterPumper extends Script {
 
     @Override
     public void onStart() {
-        log(ButterPumper.class, "Version" + scriptVersion);
+        log(ButterPumper.class, "Version" + version);
         checkForUpdates();
 
         UI ui = new UI(this);
@@ -340,7 +340,7 @@ public class ButterPumper extends Script {
         c.drawRect(panelX, panelY, panelW, panelH, border);
 
         String titleName = "ButterPumper";
-        String titleVersion = " v" + scriptVersion;
+        String titleVersion = " v" + version;
 
         int nameWidth = c.getFontMetrics(titleFont).stringWidth(titleName);
         int versionWidth = c.getFontMetrics(titleFont).stringWidth(titleVersion);
@@ -413,19 +413,19 @@ public class ButterPumper extends Script {
     }
 
     private boolean checkForUpdates() {
-        String latest = getLatestVersion("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/refs/heads/main/ButterPumper/src/com/butter/script/combat/butterpumper/ButterPumper.java");
+        String latest = getLatestVersion("https://raw.githubusercontent.com/ButterB21/Butter-Scripts/refs/heads/main/ButterPumper/jar/VERSION.txt");
 
         if (latest == null) {
             log("VERSION", "⚠ Could not fetch latest version info.");
             return false;
         }
 
-        if (compareVersions(scriptVersion, latest) < 0) {
+        if (compareVersions(version, latest) < 0) {
             log("VERSION", "❌ New version v" + latest + " found! Please update your script from github.");
             return true;
         }
 
-        log("SCRIPTVERSION", "✅ You are running the latest version (v" + scriptVersion + ").");
+        log("SCRIPTVERSION", "✅ You are running the latest version (v" + version + ").");
         return true;
     }
 
@@ -436,21 +436,20 @@ public class ButterPumper extends Script {
             c.setConnectTimeout(3000);
             c.setReadTimeout(3000);
 
-            if (c.getResponseCode() != 200) {
+            if (c. getResponseCode() != 200) {
                 return null;
             }
 
             try (BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream()))) {
+                StringBuilder sb = new StringBuilder();
                 String line;
                 while ((line = r.readLine()) != null) {
-                    if (line.trim().startsWith("version")) {
-                        return line.split("=")[1].replace(",", "").trim();
-                    }
+                    sb. append(line);
                 }
+                return sb.toString().trim();
             }
         } catch (Exception e) {
-            log("VERSION", "❌ ⚠ Error fetching latest version: " + e.getMessage());
+            return null;
         }
-        return null;
     }
 }
