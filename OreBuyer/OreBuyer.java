@@ -31,11 +31,11 @@ import java.util.function.Predicate;
 
 @ScriptDefinition(name = "OreBuyer",
         author = "Butter",
-        version = 1.7,
-        description = "Buy Ores and Bank",
+        version = 1.8,
+        threadUrl = "https://wiki.osmb.co.uk/article/ore-buyer",
         skillCategory = SkillCategory.OTHER)
 public class OreBuyer extends Script {
-    private final String version = "1.7";
+    private final String version = "1.8";
     public static final String[] BANK_NAMES = {"Bank", "Chest", "Bank booth", "Bank chest", "Grand Exchange booth"};
     public static final String[] BANK_ACTIONS = {"bank", "open", "use"};
 

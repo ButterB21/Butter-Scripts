@@ -46,8 +46,8 @@ import static com.butter.script.hunter.buttermoonlightantelope.util.MovementUtil
 
 @ScriptDefinition(
         name = "Butter Moonlight Antelope",
-        description =  "A script for catching & banking Moonlight Antelope antlers & meat.",
-        version = 1.3,
+        threadUrl =  "https://wiki.osmb.co.uk/article/moonlight-antelopes",
+        version = 1.4,
         author = "Butter",
         skillCategory = SkillCategory.HUNTER)
 public class ButterMoonlightAntelope extends Script {
@@ -55,7 +55,7 @@ public class ButterMoonlightAntelope extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "1.3";
+    private final String scriptVersion = "1.4";
     private long scriptStartTime = 0;
 
     private BankHandler bankHandler = null;

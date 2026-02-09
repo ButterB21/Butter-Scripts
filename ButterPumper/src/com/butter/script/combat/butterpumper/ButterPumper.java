@@ -26,14 +26,18 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-@ScriptDefinition(name = "Butter Pumper", author = "Butter", version = 1.3, description = "Blast Furnace Pumper", skillCategory = SkillCategory.COMBAT)
+@ScriptDefinition(name = "Butter Pumper",
+        author = "Butter",
+        version = 1.4,
+        threadUrl = "https://wiki.osmb.co.uk/article/blast-furnace-pumper",
+        skillCategory = SkillCategory.COMBAT)
 
 public class ButterPumper extends Script {
     public ButterPumper(Object scriptCore) {
         super(scriptCore);
     }
 
-    private final String version = "1.3";
+    private final String version = "1.4";
 
     private Timer playerAnimationTimer = new Timer();
     private Timer randomActionTimer = new Timer();
@@ -56,6 +60,8 @@ public class ButterPumper extends Script {
     private int failedPumpInteraction = 0;
     private long scriptStartTime = 0;
 
+    private boolean checkedStartingWorld = false;
+
     @Override
     public void onStart() {
         log(ButterPumper.class, "Version" + version);
@@ -71,16 +77,7 @@ public class ButterPumper extends Script {
         minAfkDelayMs = ui.getMinAfkMinutes() * 60000;
         maxAfkDurationMs = ui.getMaxAfkMinutes() * 60000;
 
-        // --- ensure we start on the selected primary world ---
-        Integer currentWorld = getCurrentWorld();
-        if (currentWorld == null || currentWorld != primaryWorld) {
-            getProfileManager().forceHop(worlds ->
-                    worlds.stream()
-                            .filter(w -> w.getId() == primaryWorld)
-                            .findFirst()
-                            .orElse(worlds.get(0))
-            );
-        }
+
 
         scriptStartTime = System.currentTimeMillis();
         this.strengthTracker = getXPTrackers().get(SkillType.STRENGTH);
@@ -101,6 +98,24 @@ public class ButterPumper extends Script {
 
     @Override
     public int poll() {
+        // --- ensure we start on the selected primary world ---
+        if (!checkedStartingWorld) {
+            Integer currentWorld = getCurrentWorld();
+            if (currentWorld == null) {
+                log(getClass(), "Could not get current world. Ensure World Hop profile is enabled.");
+                return 0;
+            }
+
+            if (currentWorld != primaryWorld) {
+                getProfileManager().forceHop(worlds ->
+                        worlds.stream()
+                                .filter(w -> w.getId() == primaryWorld)
+                                .findFirst()
+                                .orElse(worlds.get(0))
+                );
+            }
+        }
+
         WorldPosition playerPos = getWorldPosition();
         if (playerPos == null) {
             log("Could not get player position");

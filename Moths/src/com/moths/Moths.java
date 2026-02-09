@@ -22,8 +22,8 @@ import java.util.List;
 
 @ScriptDefinition(
         name = "Moths",
-        description = "A script for catching & banking moths.",
-        version = 2.59,
+        threadUrl = "https://wiki.osmb.co.uk/article/moth-catcher",
+        version = 2.60,
         author = "Butter",
         skillCategory = SkillCategory.HUNTER)
 public class Moths extends Script {
@@ -31,7 +31,7 @@ public class Moths extends Script {
         super(scriptCore);
     }
 
-    private final String scriptVersion = "2.59";
+    private final String scriptVersion = "2.60";
 
     private UI ui;
     private final List<Task> tasks = new ArrayList<>();
